@@ -1,8 +1,3 @@
-#include "application.h"
+#include "src/core/application.h"
 
-#include <iostream>
-
-void HelloWorld::Hello()
-{
-    std::cout<<"Hello World"<<std::endl;
-}
+namespace habitify_core {}
