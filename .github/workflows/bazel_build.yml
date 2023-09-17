@@ -25,8 +25,22 @@ jobs:
       # the rest of the steps
       - uses: actions/checkout@v2
 
-      - name: Initialize submodules
+      - name: Cache Git submodules
+        run: |
+          submodules=$(git submodule status --recursive | awk '{print $2}')
+          for submodule in $submodules; do
+            if [ -d "$submodule" ]; then
+              tar -czf "${submodule}.tar.gz" -C "${submodule}/.." "$(basename "$submodule")"
+            fi
+          done
+
+      - name: Check if submodules were already cached
+        id: check_cache
+        run: echo "::set-output name=cached::$(test -d third_party/)"
+
+      - name: Initialize submodules if not cached
         run: git submodule update --init --recursive
+        if: steps.check_cache.outputs.cached == 'false'
 
       - name: Install OpenGL libraries on Ubuntu
         if: runner.os == 'Linux'
@@ -34,6 +48,6 @@ jobs:
 
       # build
       - name: Build the code
-        run: bazel build :Habitify -lOpenGL
+        run: bazel build :Habitify
       # - name: Run the test
       #   run: bazel test //...
