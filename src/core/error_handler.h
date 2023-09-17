@@ -1,0 +1,9 @@
+#ifndef HABITIFY_SRC_CORE_ERROR_HANDLER_H_
+#define HABITIFY_SRC_CORE_ERROR_HANDLER_H_
+
+#ifndef HAB_ASSERT
+#include <assert.h>
+#define HAB_ASSERT(_EXPR) assert(_EXPR)
+#endif  // HAB_ASSERT
+
+#endif  // HABITIFY_SRC_CORE_ERROR_HANDLER_H_

@@ -1,7 +1,7 @@
 #ifndef HABITIFY_SRC_CORE_LAYER_H
 #define HABITIFY_SRC_CORE_LAYER_H
 
-namespace habitify {
+namespace habitify_core {
 class Layer {
  public:
   virtual ~Layer() = default;
@@ -11,6 +11,6 @@ class Layer {
 
   virtual void OnUIRender(){};
 };
-}  // namespace habitify
+}  // namespace habitify_core
 
 #endif  // HABITIFY_SRC_CORE_LAYER_H

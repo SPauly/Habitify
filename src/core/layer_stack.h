@@ -6,7 +6,7 @@
 
 #include "src/core/layer.h"
 
-namespace habitify {
+namespace habitify_core {
 
 class LayerStack {
  public:
@@ -61,6 +61,6 @@ class LayerStack {
   std::vector<std::shared_ptr<Layer>> hidden_layers_;
   unsigned int layer_insert_index_ = 0;
 };
-}  // namespace habitify
+}  // namespace habitify_core
 
 #endif  // HABITIFY_SRC_CORE_LAYER_STACK_H_

@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace habitify {
+namespace habitify_core {
 LayerStack::~LayerStack() { clear(); }
 
 void LayerStack::PushLayer(const std::shared_ptr<Layer> &layer) {
@@ -65,4 +65,4 @@ void LayerStack::clear() {
   }
 }
 
-}  // namespace habitify
+}  // namespace habitify_core
