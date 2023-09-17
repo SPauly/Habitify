@@ -25,19 +25,17 @@ jobs:
       # the rest of the steps
       - uses: actions/checkout@v2
 
-      - name: Cache submodules
-        uses: actions/cache@v2
-        with:
-          path: third-party/
-          key: ${{ runner.os }}-submodule
-
       - name: Check if submodules were already cached
         id: check_cache
         run: echo "::set-output name=cached::$(test -d third_party/)"
 
       - name: Initialize submodules if not cached
-        if: steps.check_cache.outputs.cached == 'false'
-        run: git submodule update --init --recursive
+        run: |
+          if [ "$(steps.check_cache.outputs.cached)" == "false" ]; then
+            git submodule update --init --recursive
+          else
+            git submodule update --remote --merge
+          fi
 
       - name: Install OpenGL libraries on Ubuntu
         if: runner.os == 'Linux'
