@@ -28,8 +28,12 @@ jobs:
       - name: Initialize submodules
         run: git submodule update --init --recursive
 
+      - name: Install OpenGL libraries on Ubuntu
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev
+
       # build
       - name: Build the code
-        run: bazel build :Habitify
+        run: bazel build :Habitify -lOpenGL
       # - name: Run the test
       #   run: bazel test //...
