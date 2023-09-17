@@ -25,22 +25,19 @@ jobs:
       # the rest of the steps
       - uses: actions/checkout@v2
 
-      - name: Cache Git submodules
-        run: |
-          submodules=$(git submodule status --recursive | awk '{print $2}')
-          for submodule in $submodules; do
-            if [ -d "$submodule" ]; then
-              tar -czf "${submodule}.tar.gz" -C "${submodule}/.." "$(basename "$submodule")"
-            fi
-          done
+      - name: Cache submodules
+        uses: actions/cache@v2
+        with:
+          path: third-party/
+          key: ${{ runner.os }}-submodule
 
       - name: Check if submodules were already cached
         id: check_cache
         run: echo "::set-output name=cached::$(test -d third_party/)"
 
       - name: Initialize submodules if not cached
-        run: git submodule update --init --recursive
         if: steps.check_cache.outputs.cached == 'false'
+        run: git submodule update --init --recursive
 
       - name: Install OpenGL libraries on Ubuntu
         if: runner.os == 'Linux'
