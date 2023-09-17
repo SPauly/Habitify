@@ -1,0 +1,2 @@
+startup --output_base=../Habitify/bazel_out
+startup --output_user_root=../Habitify/bazel_out/_bazel_

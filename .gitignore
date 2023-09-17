@@ -1,4 +1,5 @@
 ## Ignore Bazel files
+bazel_out/
 # Ignore backup files.
 *~
 # Ignore Vim swap files.

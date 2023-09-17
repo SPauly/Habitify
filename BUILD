@@ -7,3 +7,9 @@ cc_binary(
     ],
     deps = ["//src/core:habitify_core"]
 )
+
+cc_binary(
+    name = "imgui_example",
+    srcs = ["third_party/imgui/examples/example_glfw_opengl3/main.cpp"],
+    deps = ["@imgui//:imgui"]
+)

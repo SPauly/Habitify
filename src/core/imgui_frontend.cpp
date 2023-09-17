@@ -38,8 +38,7 @@ bool ImGuiFrontend::Init() {
 #endif
 
   // Create window with graphics context
-  window_ =
-      glfwCreateWindow(display_w_, display_h_, "ViscoCorrect", NULL, NULL);
+  window_ = glfwCreateWindow(display_w_, display_h_, "Habitify", NULL, NULL);
   if (window_ == NULL) return false;
   glfwMakeContextCurrent(window_);
   glfwSwapInterval(1);  // Enable vsync
@@ -93,8 +92,6 @@ void ImGuiFrontend::Run() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
     ImGui::ShowDemoWindow();
 
