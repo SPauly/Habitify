@@ -25,32 +25,26 @@ jobs:
       # the rest of the steps
       - uses: actions/checkout@v2
 
-      - name: Check if submodules were already cached
+      - name: Check if third_party/ was already cached
         id: check_cache
-        run: |
-          if [ -d "third_party/grpc/" ]; then
-            echo "CACHED=true" >> $GITHUB_ENV
-          else
-            echo "CACHED=false" >> $GITHUB_ENV
-          fi
+        uses: actions/cache@v2
+        with:
+          path: third_party/
+          key: ${{ runner.os }}-third_party_cache-${{ github.ref }}
 
-      - if: steps.check_cache.outputs.CACHED == 'false'
+      - if: steps.check_cache.outputs.cache-hit == 'false'
         name: Install submodules
         run: |
           git submodule update --init --recursive
-        continue-on-error: true
 
-      - name: Cache Submodules
-        id: submodule-cache
+      - name: Cache third_party/ directory
+        id: cache-third-party
         uses: actions/cache@v2
-        env:
-          cache-name: submodules-cache
         with:
-          path: |
-            third_party/
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ github.ref }}
+          path: third_party/
+          key: ${{ runner.os }}-third_party_cache-${{ github.ref }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-development
+            ${{ runner.os }}-third_party_cache-
         
       - name: Install OpenGL libraries on Ubuntu
         if: runner.os == 'Linux'
