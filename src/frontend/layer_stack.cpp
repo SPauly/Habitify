@@ -1,8 +1,8 @@
-#include "src/core/layer_stack.h"
+#include "src/frontend/layer_stack.h"
 
 #include <algorithm>
 
-namespace habitify_core {
+namespace habitify_frontend {
 LayerStack::~LayerStack() { clear(); }
 
 void LayerStack::PushLayer(const std::shared_ptr<Layer> &layer) {
@@ -65,4 +65,4 @@ void LayerStack::clear() {
   }
 }
 
-}  // namespace habitify_core
+}  // namespace habitify_frontend

@@ -6,9 +6,9 @@
 
 namespace habitify_core {
 
-Application::Application() : imgui_frontend_(this) {
-  frontend_thread_ =
-      new (std::nothrow) std::thread(&ImGuiFrontend::Run, &imgui_frontend_);
+Application::Application() {
+  frontend_thread_ = new (std::nothrow)
+      std::thread(&habitify_frontend::ImGuiFrontend::Run, &imgui_frontend_);
   HAB_ASSERT(frontend_thread_);
 }
 

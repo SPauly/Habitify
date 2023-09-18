@@ -1,7 +1,9 @@
-#include "src/core/imgui_frontend.h"
+#include "src/frontend/imgui_frontend.h"
 
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+
+#include "src/debug/debug_gui.h"
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && \
     !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
@@ -12,8 +14,8 @@ static void glfw_error_callback(int error, const char *description) {
   fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-namespace habitify_core {
-ImGuiFrontend::ImGuiFrontend(const Application *app) : application_core_(app) {}
+namespace habitify_frontend {
+ImGuiFrontend::ImGuiFrontend() {}
 ImGuiFrontend::~ImGuiFrontend() {}
 
 bool ImGuiFrontend::Init() {
@@ -58,6 +60,9 @@ bool ImGuiFrontend::Init() {
   ImGui_ImplOpenGL3_Init(glsl_version);
 
   viewport_ = ImGui::GetMainViewport();
+
+  // instantiate layers
+  layer_stack_.PushLayer<habitify_debug::DebugGui>();
 
   return is_initialized = true;
 }
@@ -126,4 +131,4 @@ void ImGuiFrontend::Run() {
   Shutdown();
 }
 
-}  // namespace habitify_core
+}  // namespace habitify_frontend

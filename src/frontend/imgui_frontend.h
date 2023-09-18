@@ -1,5 +1,5 @@
-#ifndef HABITIFY_SRC_CORE_IMGUI_FRONTEND_H_
-#define HABITIFY_SRC_CORE_IMGUI_FRONTEND_H_
+#ifndef HABITIFY_SRC_FRONTEND_IMGUI_FRONTEND_H_
+#define HABITIFY_SRC_FRONTEND_IMGUI_FRONTEND_H_
 
 #include <imgui.h>
 
@@ -9,17 +9,13 @@
 #endif
 #include <GLFW/glfw3.h>  // Will drag system OpenGL headers
 
-#include "src/core/layer_stack.h"
+#include "src/frontend/layer_stack.h"
 
-namespace habitify_core {
-
-// declared in src/core/application.h
-class Application;
+namespace habitify_frontend {
 
 class ImGuiFrontend {
  public:
-  ImGuiFrontend() = delete;
-  ImGuiFrontend(const Application *);
+  ImGuiFrontend();
   ~ImGuiFrontend();
 
   void Run();
@@ -31,7 +27,6 @@ class ImGuiFrontend {
  private:
   // flags
   bool is_initialized = false;
-  const Application *application_core_;
 
   // ImGui Frontend utils
   GLFWwindow *window_;
@@ -52,6 +47,6 @@ class ImGuiFrontend {
   LayerStack layer_stack_;
 };
 
-}  // namespace habitify_core
+}  // namespace habitify_frontend
 
-#endif  // HABITIFY_SRC_CORE_IMGUI_FRONTEND_H_
+#endif  // HABITIFY_SRC_FRONTEND_IMGUI_FRONTEND_H_

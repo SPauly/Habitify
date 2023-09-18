@@ -1,12 +1,12 @@
-#ifndef HABITIFY_SRC_CORE_LAYER_STACK_H_
-#define HABITIFY_SRC_CORE_LAYER_STACK_H_
+#ifndef HABITIFY_SRC_FRONTEND_LAYER_STACK_H_
+#define HABITIFY_SRC_FRONTEND_LAYER_STACK_H_
 
 #include <memory>
 #include <vector>
 
-#include "src/core/layer.h"
+#include "src/frontend/layer.h"
 
-namespace habitify_core {
+namespace habitify_frontend {
 
 class LayerStack {
  public:
@@ -19,7 +19,7 @@ class LayerStack {
                   "Pushed type is not subclass of Layer!");
     layers_.emplace(layers_.begin() + layer_insert_index_,
                     std::make_shared<T>());
-    layers_.at(layers_.begin() + layer_insert_index_)->OnAttach();
+    (*std::next(layers_.begin(), layer_insert_index_))->OnAttach();
     layer_insert_index_++;
   }
 
@@ -61,6 +61,6 @@ class LayerStack {
   std::vector<std::shared_ptr<Layer>> hidden_layers_;
   unsigned int layer_insert_index_ = 0;
 };
-}  // namespace habitify_core
+}  // namespace habitify_frontend
 
-#endif  // HABITIFY_SRC_CORE_LAYER_STACK_H_
+#endif  // HABITIFY_SRC_FRONTEND_LAYER_STACK_H_

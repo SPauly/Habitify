@@ -4,7 +4,7 @@
 #include <thread>
 #include <vector>
 
-#include "src/core/imgui_frontend.h"
+#include "src/frontend/imgui_frontend.h"
 
 namespace habitify_core {
 class Application {
@@ -15,7 +15,7 @@ class Application {
   void Run();
 
  private:
-  ImGuiFrontend imgui_frontend_;
+  habitify_frontend::ImGuiFrontend imgui_frontend_;
   std::thread *frontend_thread_;
 };
 }  // namespace habitify_core
