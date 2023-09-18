@@ -1,5 +1,5 @@
-#ifndef HABITIFY_SRC_PING_PING_GUI_H_
-#define HABITIFY_SRC_PING_PING_GUI_H_
+#ifndef HABITIFY_SRC_FRONTEND_PING_PING_GUI_H_
+#define HABITIFY_SRC_FRONTEND_PING_PING_GUI_H_
 
 #include "src/frontend/layer.h"
 
@@ -10,4 +10,4 @@ class PingGui : public Layer {
 };
 }  // namespace habitify_frontend
 
-#endif  // HABITIFY_SRC_PING_PING_GUI_H_
+#endif  // HABITIFY_SRC_FRONTEND_PING_PING_GUI_H_

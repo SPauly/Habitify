@@ -1,4 +1,4 @@
-#include "src/ping/ping_gui.h"
+#include "src/frontend/ping/ping_gui.h"
 
 #include <imgui.h>
 

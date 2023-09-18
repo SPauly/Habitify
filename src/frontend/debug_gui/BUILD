@@ -1,12 +1,12 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "console",
+    name = "debug_tools",
     srcs = [
-        "console.cpp",
+        "debug_gui.cpp",
     ],
     hdrs = [
-        "console.h",
+        "debug_gui.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

@@ -21,8 +21,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":frontend_utils",
-        "//src/debug:debug_tools",
-        "//src/ping:ping_frontend",
+        "//src/frontend/debug:debug_tools",
+        "//src/frontend/ping:ping_frontend",
         "@glfw",
         "@imgui",
     ],
