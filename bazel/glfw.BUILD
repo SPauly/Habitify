@@ -31,7 +31,6 @@ LINUX_DEFINES = [
 ]
 
 LINUX_HDRS = [
-    "src/glx_context.h",
     "src/linux_joystick.h",
     "src/posix_thread.h",
     "src/posix_time.h",
@@ -52,44 +51,44 @@ LINUX_LINKOPTS = []
 
 cc_library(
     name = "glfw_src",
+    srcs = [
+        "src/context.c",
+        "src/egl_context.c",
+        "src/init.c",
+        "src/input.c",
+        "src/monitor.c",
+        "src/null_init.c",
+        "src/null_joystick.c",
+        "src/null_monitor.c",
+        "src/null_window.c",
+        "src/osmesa_context.c",
+        "src/platform.c",
+        "src/vulkan.c",
+        "src/window.c",
+        "src/xkb_unicode.c",
+    ] + select({
+        "@bazel_tools//src/conditions:windows": WIN32_SRCS,
+        "@bazel_tools//src/conditions:linux_x86_64": LINUX_SRCS,
+    }),
     hdrs = [
         "include/GLFW/glfw3.h",
         "include/GLFW/glfw3native.h",
         "src/internal.h",
-        "src/platform.h",
         "src/mappings.h",
-        "src/null_platform.h",
         "src/null_joystick.h",
+        "src/null_platform.h",
+        "src/platform.h",
         "src/win32_thread.h",
         "src/win32_time.h",
         "src/xkb_unicode.h",
     ] + select({
-		"@bazel_tools//src/conditions:windows": WIN32_HDRS,
-		"@bazel_tools//src/conditions:linux_x86_64": LINUX_HDRS,
-	}),
-    srcs = [
-        "src/context.c",
-        "src/init.c",
-        "src/input.c",
-        "src/monitor.c",
-        "src/platform.c",
-        "src/vulkan.c",
-        "src/window.c",
-        "src/egl_context.c",
-        "src/osmesa_context.c",
-        "src/null_init.c",
-        "src/null_monitor.c",
-        "src/null_window.c",
-        "src/null_joystick.c",
-        "src/xkb_unicode.c",
-    ] + select({
-		"@bazel_tools//src/conditions:windows": WIN32_SRCS,
-		"@bazel_tools//src/conditions:linux_x86_64": LINUX_SRCS,
-	}),
+        "@bazel_tools//src/conditions:windows": WIN32_HDRS,
+        "@bazel_tools//src/conditions:linux_x86_64": LINUX_HDRS,
+    }),
     defines = select({
-		"@bazel_tools//src/conditions:windows": WIN32_DEFINES,
-		"@bazel_tools//src/conditions:linux_x86_64": LINUX_DEFINES,
-	}),
+        "@bazel_tools//src/conditions:windows": WIN32_DEFINES,
+        "@bazel_tools//src/conditions:linux_x86_64": LINUX_DEFINES,
+    }),
 )
 
 cc_library(
@@ -99,10 +98,10 @@ cc_library(
         "include/GLFW/glfw3native.h",
     ],
     linkopts = select({
-		"@bazel_tools//src/conditions:windows": WIN32_LINKOPTS,
-		"@bazel_tools//src/conditions:linux_x86_64": LINUX_LINKOPTS,
-	}),
-    deps = [":glfw_src",],
+        "@bazel_tools//src/conditions:windows": WIN32_LINKOPTS,
+        "@bazel_tools//src/conditions:linux_x86_64": LINUX_LINKOPTS,
+    }),
     strip_include_prefix = "include",
     visibility = ["//visibility:public"],
+    deps = [":glfw_src"],
 )
