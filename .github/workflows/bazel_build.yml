@@ -27,9 +27,14 @@ jobs:
 
       - name: Check if submodules were already cached
         id: check_cache
-        run: echo "::set-output name=cached::$(test -d third_party/)"
+        run: |
+          if [ -d "third_party/grpc/" ]; then
+            echo "CACHED=true" >> $GITHUB_ENV
+          else
+            echo "CACHED=false" >> $GITHUB_ENV
+          fi
 
-      - if: steps.check_cache.outputs.cached == 'false'
+      - if: steps.check_cache.outputs.CACHED == 'false'
         name: Install submodules
         run: |
           git submodule update --init --recursive
@@ -42,7 +47,7 @@ jobs:
           cache-name: submodules-cache
         with:
           path: |
-            third_party
+            third_party/
           key: ${{ runner.os }}-${{ env.cache-name }}-${{ github.ref }}
           restore-keys: |
             ${{ runner.os }}-${{ env.cache-name }}-development
