@@ -32,10 +32,9 @@ jobs:
           path: third_party/
           key: ${{ runner.os }}-third_party_cache-${{ github.ref }}
 
-      - if: steps.check_cache.outputs.cache-hit == 'false'
+      - if: steps.check_cache.outputs.cache-hit != 'true'
         name: Install submodules
-        run: |
-          git submodule update --init --recursive
+        run:  git submodule update --init --recursive
 
       - name: Cache third_party/ directory
         id: cache-third-party
