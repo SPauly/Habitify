@@ -47,7 +47,29 @@ LINUX_SRCS = [
     "src/x11_window.c",
 ]
 
-LINUX_LINKOPTS = []
+# Additional include paths for X11
+LINUX_INCLUDES = [
+    "@X11//:include",
+    "@X11_Xcursor//:include",
+    "@X11_Xinerama//:include",
+    "@X11_Xkb//:include",
+    "@X11_Xrandr//:include",
+    "@X11_Xi//:include",
+    "@X11_Xshape//:include",
+]
+
+# Additional link options for X11
+LINUX_LINKOPTS = [
+    "-lX11",
+    "-lXcursor",
+    "-lXinerama",
+    "-lXi",
+    "-lXrandr",
+    "-lXxf86vm",
+    "-lXkb",
+    "-lXrender",
+    "-lXext",
+]
 
 cc_library(
     name = "glfw_src",
@@ -88,6 +110,10 @@ cc_library(
     defines = select({
         "@bazel_tools//src/conditions:windows": WIN32_DEFINES,
         "@bazel_tools//src/conditions:linux_x86_64": LINUX_DEFINES,
+    }),
+    includes = select({
+        "@bazel_tools//src/conditions:windows": [],
+        "@bazel_tools//src/conditions:linux_x86_64": LINUX_INCLUDES,
     }),
 )
 
