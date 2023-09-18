@@ -22,6 +22,7 @@ cc_library(
     deps = [
         ":frontend_utils",
         "//src/debug:debug_tools",
+        "//src/ping:ping_frontend",
         "@glfw",
         "@imgui",
     ],

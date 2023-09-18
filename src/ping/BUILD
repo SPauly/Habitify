@@ -1,12 +1,12 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "console",
+    name = "ping_frontend",
     srcs = [
-        "console.cpp",
+        "ping_gui.cpp",
     ],
     hdrs = [
-        "console.h",
+        "ping_gui.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

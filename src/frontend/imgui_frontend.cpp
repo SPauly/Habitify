@@ -4,6 +4,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include "src/debug/debug_gui.h"
+#include "src/ping/ping_gui.h"
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && \
     !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
@@ -63,6 +64,7 @@ bool ImGuiFrontend::Init() {
 
   // instantiate layers
   layer_stack_.PushLayer<habitify_debug::DebugGui>();
+  layer_stack_.PushLayer<PingGui>();
 
   return is_initialized = true;
 }
