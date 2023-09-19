@@ -3,8 +3,8 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-#include "src/debug/debug_gui.h"
-#include "src/ping/ping_gui.h"
+#include "src/frontend/debug_gui/debug_gui.h"
+#include "src/frontend/ping/ping_gui.h"
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && \
     !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
@@ -16,8 +16,7 @@ static void glfw_error_callback(int error, const char *description) {
 }
 
 namespace habitify_frontend {
-ImGuiFrontend::ImGuiFrontend()
-    : event_bus_(habitify_core::EventBus::get_instance()) {}
+ImGuiFrontend::ImGuiFrontend() {}
 ImGuiFrontend::~ImGuiFrontend() {}
 
 bool ImGuiFrontend::Init() {

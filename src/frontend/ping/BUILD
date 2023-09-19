@@ -10,6 +10,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//src/core/event_bus:eventbus",
         "//src/frontend:frontend_utils",
         "@imgui",
     ],

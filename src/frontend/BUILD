@@ -22,7 +22,7 @@ cc_library(
     deps = [
         ":frontend_utils",
         "//src/core/event_bus:eventbus",
-        "//src/frontend/debug:debug_tools",
+        "//src/frontend/debug_gui:debug_tools",
         "//src/frontend/ping:ping_frontend",
         "@glfw",
         "@imgui",
