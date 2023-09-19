@@ -16,7 +16,8 @@ static void glfw_error_callback(int error, const char *description) {
 }
 
 namespace habitify_frontend {
-ImGuiFrontend::ImGuiFrontend() {}
+ImGuiFrontend::ImGuiFrontend()
+    : event_bus_(habitify_core::EventBus::get_instance()) {}
 ImGuiFrontend::~ImGuiFrontend() {}
 
 bool ImGuiFrontend::Init() {

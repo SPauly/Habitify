@@ -3,14 +3,16 @@
 
 #include <imgui.h>
 
+#include <memory>
+
 #define GL_SILENCE_DEPRECATION
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
 #endif
 #include <GLFW/glfw3.h>  // Will drag system OpenGL headers
 
+#include "src/core/event_bus/event_bus.h"
 #include "src/frontend/layer_stack.h"
-
 namespace habitify_frontend {
 
 class ImGuiFrontend {
@@ -25,6 +27,9 @@ class ImGuiFrontend {
   void Shutdown();
 
  private:
+  // Connection to backend
+  std::shared_ptr<habitify_core::EventBus> event_bus_;
+
   // flags
   bool is_initialized = false;
 
