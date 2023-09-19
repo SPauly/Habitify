@@ -1,7 +1,9 @@
 #ifndef HABITIFY_SRC_CORE_EVENT_BUS_EVENT_BUS_H_
 #define HABITIFY_SRC_CORE_EVENT_BUS_EVENT_BUS_H_
 
+#include <condition_variable>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -45,7 +47,7 @@ class Publisher {
   friend class Listener;
 
   Publisher() = default;
-  Publisher(const ChannelIdType& channel, std::shared_ptr<EventBase> data);
+  Publisher(const ChannelIdType& channel, std::shared_ptr<EventBase> event);
   ~Publisher() = default;
 
   Publisher(const Publisher&) = delete;
@@ -54,13 +56,41 @@ class Publisher {
   const ChannelIdType& Publish(std::shared_ptr<EventBase> event);
 
  private:
-  std::mutex mux_data_;
-  std::deque<std::shared_ptr<EventBase>> data_que_;
+  std::shared_ptr<EventBase> ReadLatest();
+  std::shared_ptr<EventBase> PopLatest();
+
+  bool HasNext(size_t index);
+
+ private:
+  std::mutex mux_events_;
+  std::shared_ptr<std::condition_variable> cv_;
+
+  size_t map_index_ = 0;
+  std::unordered_map<int, std::shared_ptr<EventBase>> event_map_;
 
   ChannelIdType channel_id_, response_channel_id_;
 };
 
-class Listener {};
+class Listener {
+ public:
+  Listener() = delete;
+  Listener(const ChannelIdType&);
+  ~Listener() = default;
+
+  void Wait();
+  void EnableCallback(std::function<void()> callback);
+  bool HasNews();
+
+  template <typename T>
+  std::shared_ptr<Event<T>> ReadLatest();
+  template <typename T>
+  std::shared_ptr<Event<T>> PopLatest();
+
+ private:
+  const ChannelIdType* channel_id_;
+  std::shared_ptr<Publisher> publisher_;
+  size_t read_index_ = 0;
+};
 
 }  // namespace habitify_core
 
