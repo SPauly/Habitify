@@ -29,9 +29,11 @@ class EventBus {
     return instance;
   }
 
-  std::shared_ptr<Publisher> RequestPublishing(
-      const ChannelIdType& channel, std::shared_ptr<EventBase> data = nullptr,
-      bool need_response = false);
+  std::shared_ptr<Publisher> RequestPublishing(const ChannelIdType& channel,
+                                               const EventBase& event,
+                                               bool need_response = false);
+
+  std::shared_ptr<Publisher> GetPublisher(const ChannelIdType& channel);
 
  private:
   EventBus() = default;
@@ -74,26 +76,28 @@ class Publisher {
 
 class Listener {
  public:
-  Listener() = delete;
-  Listener(const ChannelIdType&);
+  Listener() = default;
+  Listener(const ChannelIdType& channel);
   ~Listener() = default;
+
+  void SubscribeTo(const ChannelIdType& channel);
+
+  template <typename T>
+  const std::shared_ptr<const Event<T>> ReadLatest() const;
 
   inline bool Wait(int ms) { return publisher_->Wait(ms, read_index_); }
   inline bool HasNews() { return publisher_->HasNext(read_index_); }
   void EnableCallback(std::function<void()> callback) {}
 
-  template <typename T>
-  const std::shared_ptr<const Event<T>> ReadLatest() const;
-
  private:
-  const ChannelIdType channel_id_;
+  ChannelIdType channel_id_;
   std::shared_ptr<Publisher> publisher_;
   size_t read_index_ = 0;
 };
 
 template <typename T>
 const std::shared_ptr<const Event<T>> Listener::ReadLatest() const {
-  return static_cast<Event<T>>(publisher_->ReadLatest());
+  return publisher_ ? static_cast<Event<T>>(publisher_->ReadLatest()) : nullptr;
 }
 
 }  // namespace habitify_core

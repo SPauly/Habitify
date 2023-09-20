@@ -6,15 +6,23 @@ namespace habitify_core {
 EventBus::~EventBus() {}
 
 std::shared_ptr<Publisher> EventBus::RequestPublishing(
-    const ChannelIdType& channel, std::shared_ptr<EventBase> event,
-    bool need_response) {
+    const ChannelIdType& channel, const EventBase& event, bool need_response) {
   std::unique_lock lock(mux_channels_);
+
+  if (channels_.find(channel) != channels_.end()) return channels_.at(channel);
 
   std::shared_ptr<Publisher> publisher =
       std::make_shared<Publisher>(channel, event);
   channels_.emplace(std::make_pair(channel, publisher));
 
   return publisher;
+}
+
+std::shared_ptr<Publisher> EventBus::GetPublisher(
+    const ChannelIdType& channel) {
+  if (channels_.find(channel) != channels_.end()) return channels_.at(channel);
+
+  return nullptr;
 }
 
 Publisher::Publisher(const ChannelIdType& channel, const EventBase& event)
@@ -40,6 +48,7 @@ const std::shared_ptr<const EventBase> Publisher::ReadLatest() const {
 }
 
 bool Publisher::HasNext(size_t index) {
+  std::shared_lock(mux_events_);
   if (index >= map_index_) return false;
 
   // check for deleted events here
@@ -61,6 +70,14 @@ bool Publisher::Wait(int ms, size_t index) {
   return true;
 }
 
-Listener::Listener(const ChannelIdType& channel) : channel_id_(channel) {}
+Listener::Listener(const ChannelIdType& channel) : channel_id_(channel) {
+  this->SubscribeTo(channel);
+}
+
+void Listener::SubscribeTo(const ChannelIdType& channel) {
+  publisher_ = EventBus::get_instance()->GetPublisher(channel);
+  channel_id_ = channel;
+  read_index_ = 0;
+}
 
 }  // namespace habitify_core

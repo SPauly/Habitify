@@ -8,12 +8,22 @@
 namespace habitify_frontend {
 void PingGui::OnUIRender() {
   ImGui::Begin("Ping Service");
+  static std::string ping_str = "Ping Received: ";
   if (ImGui::Button("Ping")) {
     ImGui::Text("Sending Ping");
-    habitify_core::Event<int> event(habitify_core::EventType::TEST, 0, nullptr);
-    auto p = habitify_core::EventBus::get_instance()->RequestPublishing(
-        1, std::make_shared<habitify_core::Event<int>>(std::move(event)));
+
+    static int ping_counter = 0;
+    habitify_core::Event<int> event(habitify_core::EventType::TEST, 1,
+                                    &ping_counter);
+    auto p =
+        habitify_core::EventBus::get_instance()->RequestPublishing(1, event);
+    habitify_core::Listener l;
+    l.SubscribeTo(0);
+    if (l.HasNews()) {
+      ping_str = "Ping Received: " + l.ReadLatest<int>()->GetData<int>();
+    }
   }
+  ImGui::Text(ping_str.c_str());
   ImGui::End();
 }
 }  // namespace habitify_frontend
