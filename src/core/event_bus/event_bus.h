@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 
 #include "src/core/event_bus/event.h"
@@ -36,7 +37,7 @@ class EventBus {
   EventBus() = default;
 
  private:
-  std::mutex mux_channels_;
+  mutable std::shared_mutex mux_channels_;
 
   std::unordered_map<ChannelIdType, std::shared_ptr<Publisher>> channels_;
   std::deque<std::shared_ptr<Publisher>> cache_;
@@ -47,26 +48,26 @@ class Publisher {
   friend class Listener;
 
   Publisher() = default;
-  Publisher(const ChannelIdType& channel, std::shared_ptr<EventBase> event);
+  Publisher(const ChannelIdType& channel, const EventBase& event);
   ~Publisher() = default;
 
   Publisher(const Publisher&) = delete;
   const Publisher& operator=(const Publisher&) = delete;
 
-  const ChannelIdType& Publish(std::shared_ptr<EventBase> event);
+  const ChannelIdType& Publish(const EventBase& event);
 
  private:
-  std::shared_ptr<EventBase> ReadLatest();
-  std::shared_ptr<EventBase> PopLatest();
+  const std::shared_ptr<const EventBase> ReadLatest() const;
 
   bool HasNext(size_t index);
+  bool Wait(int ms, size_t index);
 
  private:
-  std::mutex mux_events_;
-  std::shared_ptr<std::condition_variable> cv_;
+  mutable std::shared_mutex mux_events_;
+  std::shared_ptr<std::condition_variable_any> cv_;
 
   size_t map_index_ = 0;
-  std::unordered_map<int, std::shared_ptr<EventBase>> event_map_;
+  std::unordered_map<int, std::shared_ptr<const EventBase>> event_map_;
 
   ChannelIdType channel_id_, response_channel_id_;
 };
@@ -77,20 +78,23 @@ class Listener {
   Listener(const ChannelIdType&);
   ~Listener() = default;
 
-  void Wait();
-  void EnableCallback(std::function<void()> callback);
-  bool HasNews();
+  inline bool Wait(int ms) { return publisher_->Wait(ms, read_index_); }
+  inline bool HasNews() { return publisher_->HasNext(read_index_); }
+  void EnableCallback(std::function<void()> callback) {}
 
   template <typename T>
-  std::shared_ptr<Event<T>> ReadLatest();
-  template <typename T>
-  std::shared_ptr<Event<T>> PopLatest();
+  const std::shared_ptr<const Event<T>> ReadLatest() const;
 
  private:
-  const ChannelIdType* channel_id_;
+  const ChannelIdType channel_id_;
   std::shared_ptr<Publisher> publisher_;
   size_t read_index_ = 0;
 };
+
+template <typename T>
+const std::shared_ptr<const Event<T>> Listener::ReadLatest() const {
+  return static_cast<Event<T>>(publisher_->ReadLatest());
+}
 
 }  // namespace habitify_core
 
