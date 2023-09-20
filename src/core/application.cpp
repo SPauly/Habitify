@@ -21,24 +21,17 @@ Application::~Application() {
 }
 
 void Application::Run() {
-  Listener l(1);
   std::shared_ptr<Publisher> p = std::make_shared<Publisher>(0);
   EventBus::get_instance()->RegisterPublisher(p);
   int ping_count = 0;
 
   Event<int> e(habitify_core::EventType::TEST, 0, &ping_count);
 
-  while (!l.SubscribeTo(1)) {
-  }
-  while (l.Wait()) {
-    auto latest = l.ReadLatest<int>();
+  while (std::cin.get()) {
     ping_count++;
-    std::cout << "Incomming Ping Request No: " << *latest->GetData<int>()
-              << std::endl;
-    std::cout << "Respond with: " << ping_count << std::endl;
-    p->Publish(e);
+    std::cout << "Sending Ping: " << ping_count << std::endl;
+    p->Publish(std::make_unique<const Event<int>>(e));
   }
-  std::cin.get();
 }
 
 }  // namespace habitify_core

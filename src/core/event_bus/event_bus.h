@@ -33,9 +33,9 @@ class EventBus {
       std::shared_ptr<Publisher> publisher);
   std::shared_ptr<Publisher> RequestPublishing(const ChannelIdType& channel,
                                                bool need_response = false);
-  std::shared_ptr<Publisher> RequestPublishing(const ChannelIdType& channel,
-                                               const EventBase& event,
-                                               bool need_response = false);
+  std::shared_ptr<Publisher> RequestPublishing(
+      const ChannelIdType& channel, std::unique_ptr<const EventBase> event,
+      bool need_response = false);
 
   std::shared_ptr<Publisher> GetPublisher(const ChannelIdType& channel);
 
@@ -53,15 +53,16 @@ class Publisher {
  public:
   friend class Listener;
 
-  Publisher() = default;
+  Publisher();
   Publisher(const ChannelIdType& channel);
-  Publisher(const ChannelIdType& channel, const EventBase& event);
+  Publisher(const ChannelIdType& channel,
+            std::unique_ptr<const EventBase> event);
   ~Publisher() = default;
 
   Publisher(const Publisher&) = delete;
   const Publisher& operator=(const Publisher&) = delete;
 
-  const ChannelIdType& Publish(const EventBase& event);
+  void Publish(std::unique_ptr<const EventBase> event);
 
   inline const ChannelIdType& get_channel_id() { return channel_id_; }
   inline const ChannelIdType& get_response_channel_id() {
@@ -92,12 +93,7 @@ class Listener {
 
   bool SubscribeTo(const ChannelIdType& channel);
 
-  template <typename T>
-  inline const std::shared_ptr<const Event<T>> ReadLatest() const {
-    return ValidatePublisher() ? std::dynamic_pointer_cast<const Event<T>>(
-                                     publisher_->ReadLatest())
-                               : nullptr;
-  }
+  const std::shared_ptr<const EventBase> ReadLatest();
 
   inline bool Wait(int ms = 0) {
     return ValidatePublisher() ? publisher_->Wait(ms, read_index_) : false;
