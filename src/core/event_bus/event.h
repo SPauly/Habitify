@@ -26,12 +26,13 @@ class EventBase {
   }
 
   template <typename T>
-  const T &GetData() const {
-    return static_cast<const T>(GetMutableDataImpl());
+  const T *const GetData() const {
+    return static_cast<const T *const>(GetDataImpl());
   }
 
  protected:
   virtual void *GetMutableDataImpl() { return nullptr; }
+  virtual const void *const GetDataImpl() const { return nullptr; }
 
  private:
   EventType event_type_;
@@ -46,7 +47,8 @@ class Event : public EventBase {
   ~Event() {}
 
  protected:
-  virtual void *GetDataImpl() override { return data_; }
+  virtual void *GetMutableDataImpl() override { return data_; }
+  virtual const void *const GetDataImpl() const override { return data_; }
 
  private:
   T *data_;
