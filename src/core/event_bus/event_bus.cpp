@@ -64,7 +64,15 @@ std::shared_ptr<PublisherBase> Channel::RegisterPublisher(
     return publisher;
   }
 
-  return publisher_ = publisher;
+  publisher_ = publisher;
+
+  // Since a new Publisher was assigned to the channel we need to update all
+  // Listeners that are already subscribed to this channel.
+  for (auto& listener : listeners_) {
+    listener->SubscribeTo(channel_id_);
+  }
+
+  return publisher_;
 }
 
 }  // namespace internal
@@ -78,123 +86,76 @@ Publisher<EvTyp>::Publisher(const ChannelIdType& channel)
 
 template <typename EvTyp>
 Publisher<EvTyp>::Publisher(const ChannelIdType& channel,
-                            std::unique_ptr<const EventBase> event)
+                            std::unique_ptr<const internal::EventBase> event)
     : Publisher(channel) {
   this->Publish(std::move(event));
-}
-
-EventBus::~EventBus() {}
-
-std::shared_ptr<Publisher> EventBus::RegisterPublisher(
-    std::shared_ptr<Publisher> publisher) {
-  if (GetPublisher(publisher->get_channel_id())) return publisher;
-
-  std::unique_lock<std::shared_mutex> lock(mux_channels_);
-  channels_.emplace(std::make_pair(publisher->get_channel_id(), publisher));
-
-  return publisher;
-}
-
-std::shared_ptr<Publisher> EventBus::RequestPublishing(
-    const ChannelIdType& channel, bool need_response) {
-  std::unique_lock<std::shared_mutex> lock(mux_channels_);
-
-  if (channels_.find(channel) != channels_.end()) return channels_.at(channel);
-
-  std::shared_ptr<Publisher> publisher = std::make_shared<Publisher>(channel);
-  channels_.emplace(std::make_pair(channel, publisher));
-
-  return publisher;
-}
-
-std::shared_ptr<Publisher> EventBus::RequestPublishing(
-    const ChannelIdType& channel, std::unique_ptr<const EventBase> event,
-    bool need_response) {
-  std::unique_lock<std::shared_mutex> lock(mux_channels_);
-
-  if (channels_.find(channel) != channels_.end()) return channels_.at(channel);
-
-  std::shared_ptr<Publisher> publisher =
-      std::make_shared<Publisher>(channel, std::move(event));
-  channels_.emplace(channel, publisher);
-
-  return publisher;
-}
-
-std::shared_ptr<Publisher> EventBus::GetPublisher(
-    const ChannelIdType& channel) {
-  std::shared_lock<std::shared_mutex> lock(mux_channels_);
-  if (channels_.find(channel) != channels_.end()) return channels_.at(channel);
-
-  return nullptr;
-}
-
-Publisher::Publisher() : cv_(std::make_shared<std::condition_variable_any>()) {}
-
-Publisher::Publisher(const ChannelIdType& channel)
-    : channel_id_(channel),
-      cv_(std::make_shared<std::condition_variable_any>()) {}
-
-Publisher::Publisher(const ChannelIdType& channel,
-                     std::unique_ptr<const EventBase> event)
-    : Publisher(channel) {
-  this->Publish(std::move(event));
-}
-
-void Publisher::Publish(std::unique_ptr<const EventBase> event) {
-  std::unique_lock<std::shared_mutex> lock(mux_events_);
-
-  event_map_.emplace(map_index_,
-                     std::shared_ptr<const EventBase>(event.release()));
-  cv_->notify_all();
-
-  map_index_++;
-}
-
-const std::shared_ptr<const EventBase> Publisher::ReadLatest() const {
-  std::shared_lock<std::shared_mutex> lock(mux_events_);
-  return event_map_.at(map_index_ - 1);
-}
-
-bool Publisher::HasNext(size_t index) {
-  std::shared_lock<std::shared_mutex> lock(mux_events_);
-  if (index >= map_index_) return false;
-
-  // check for deleted events here
-  return true;
-}
-
-bool Publisher::Wait(int ms, size_t index) {
-  if (HasNext(index)) return true;
-
-  std::unique_lock<std::shared_mutex> lock(mux_events_);
-
-  auto predicate = [this, index]() { return HasNext(index); };
-
-  if (ms == 0)
-    cv_->wait(lock, predicate);
-  else if (!cv_->wait_for(lock, std::chrono::milliseconds(ms), predicate))
-    return false;
-
-  return true;
 }
 
 Listener::Listener() : event_bus_(EventBus::get_instance()) {}
 
-Listener::Listener(const ChannelIdType& channel) : channel_id_(channel) {
+Listener::Listener(const ChannelIdType& channel)
+    : event_bus_(EventBus::get_instance()), channel_id_(channel) {
   this->SubscribeTo(channel);
 }
 
 bool Listener::SubscribeTo(const ChannelIdType& channel) {
-  channel_id_ = channel;
-  read_index_ = 0;
-  return (publisher_ = EventBus::get_instance()->GetPublisher(channel)) !=
-         nullptr;
+  std::unique_lock<std::shared_mutex> lock(mux_);
+  channel_ = event_bus_->RegisterListener(channel, shared_from_this());
+  if (channel_) {
+    publisher_ = channel_->get_publisher();
+    channel_id_ = channel;
+    read_index_ = 0;
+    return true;
+  }
+  return false;
 }
 
-const std::shared_ptr<const EventBase> Listener::ReadLatest() {
-  read_index_++;
-  return ValidatePublisher() ? publisher_->ReadLatest() : nullptr;
+bool Listener::ValidatePublisher() {
+  if (!publisher_)
+    // In case the Publisher was deleted we try to get a new one from the
+    // channel.
+    publisher_ = channel_ ? channel_->get_publisher() : nullptr;
+  return (bool)publisher_;
+}
+
+std::shared_ptr<internal::Channel> EventBus::RegisterPublisher(
+    const ChannelIdType& channel_id,
+    std::shared_ptr<internal::PublisherBase> publisher) {
+  std::unique_lock<std::shared_mutex> lock(mux_channels_);
+
+  if (channels_.find(channel_id) != channels_.end()) {
+    // this means there already is a channel with this id so we need to check if
+    // it is assigned a Channel and add one if needed. This is done by the
+    // Channel::RegisterPublsher()
+    publisher = channels_.at(channel_id)->RegisterPublisher(publisher);
+    return channels_.at(channel_id);
+  }
+
+  std::shared_ptr<internal::Channel> channel =
+      std::make_shared<internal::Channel>(channel_id, publisher);
+  channels_.emplace(std::make_pair(channel_id, channel));
+
+  return channel;
+}
+
+std::shared_ptr<internal::Channel> EventBus::RegisterListener(
+    const ChannelIdType& channel_id, std::shared_ptr<Listener> listener) {
+  std::unique_lock<std::shared_mutex> lock(mux_channels_);
+
+  if (channels_.find(channel_id) != channels_.end()) {
+    // since there already is a channel with this id we can just register the
+    // Listener
+    channels_.at(channel_id)->RegisterListener(listener);
+    return channels_.at(channel_id);
+  } else {
+    // we need to create a new channel and register the Listener to it. Once a
+    // new Publisher is registered to the channel the Listener will be updated.
+    std::shared_ptr<internal::Channel> channel =
+        std::make_shared<internal::Channel>(channel_id);
+    channel->RegisterListener(listener);
+    channels_.emplace(std::make_pair(channel_id, channel));
+    return channel;
+  }
 }
 
 }  // namespace habitify_core

@@ -25,6 +25,7 @@ enum EventType { TEST };
 
 using ChannelIdType = int;
 
+namespace internal {
 class EventBase {
  public:
   EventBase() = default;
@@ -56,12 +57,13 @@ class EventBase {
   EventType event_type_;
   ChannelIdType channel_id_ = 0;
 };
+}  // namespace internal
 
 template <typename T>
-class Event : public EventBase {
+class Event : public internal::EventBase {
  public:
   Event(EventType etype, ChannelIdType channel_id, T *data)
-      : EventBase(etype, channel_id), data_(data) {}
+      : internal::EventBase(etype, channel_id), data_(data) {}
   ~Event() {}
 
  protected:
