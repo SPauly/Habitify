@@ -1,8 +1,88 @@
+// Habitify - Habit tracking and creating platform
+// Copyright (C) 2023  Simon Pauly
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+//(at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Contact via <https://github.com/SPauly/Habitify>
+
 #include "src/core/event_bus/event_bus.h"
 
 #include <chrono>
 
 namespace habitify_core {
+namespace internal {
+PublisherBase::PublisherBase()
+    : cv_(std::make_shared<std::condition_variable_any>()),
+      event_bus_(EventBus::get_instance()) {}
+PublisherBase::PublisherBase(const ChannelIdType& channel) : PublisherBase() {
+  TryRegisterChannel(channel);
+}
+
+bool PublisherBase::TryRegisterChannel(const ChannelIdType& channel) {
+  std::unique_lock<std::shared_mutex> lock(mux_);
+  if (is_registered_) return false;
+
+  // The Publisher is stored as a shared_ptr by the channel to properly handle
+  // its lifetime.
+  channel_ = event_bus_->RegisterPublisher(channel, shared_from_this());
+
+  if (channel_) {
+    channel_id_ = channel;
+    is_registered_ = true;
+  }
+
+  return is_registered_;
+}
+
+Channel::Channel(const ChannelIdType& channel,
+                 std::shared_ptr<PublisherBase> publisher)
+    : channel_id_(channel), publisher_(publisher) {}
+
+void Channel::RegisterListener(std::shared_ptr<Listener> listener) {
+  std::unique_lock<std::shared_mutex> lock(mux_);
+  listeners_.push_back(listener);
+}
+
+std::shared_ptr<PublisherBase> Channel::RegisterPublisher(
+    std::shared_ptr<PublisherBase> publisher) {
+  std::unique_lock<std::shared_mutex> lock(mux_);
+  // If the channel already has a publisher we merge them by assigning the given
+  // shared_ptr to the publisher_ in place.
+  if (publisher_) {
+    publisher = publisher_;
+    return publisher;
+  }
+
+  return publisher_ = publisher;
+}
+
+}  // namespace internal
+
+template <typename EvTyp>
+Publisher<EvTyp>::Publisher() : PublisherBase() {}
+
+template <typename EvTyp>
+Publisher<EvTyp>::Publisher(const ChannelIdType& channel)
+    : PublisherBase(channel) {}
+
+template <typename EvTyp>
+Publisher<EvTyp>::Publisher(const ChannelIdType& channel,
+                            std::unique_ptr<const EventBase> event)
+    : Publisher(channel) {
+  this->Publish(std::move(event));
+}
+
 EventBus::~EventBus() {}
 
 std::shared_ptr<Publisher> EventBus::RegisterPublisher(

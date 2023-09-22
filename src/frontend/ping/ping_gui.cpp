@@ -16,8 +16,8 @@ void PingGui::OnUIRender() {
   static habitify_core::Listener l(0);
 
   if (l.HasNews())
-    ping_str =
-        "Ping Received: " + std::to_string(*l.ReadLatest()->GetData<int>());
+    ping_str = "Ping Received: " +
+               std::to_string(*l.ReadLatest<int>()->GetData<int>());
 
   ImGui::Text(ping_str.c_str());
   ImGui::End();

@@ -1,3 +1,36 @@
+// Habitify - Habit tracking and creating platform
+// Copyright (C) 2023  Simon Pauly
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+//(at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// Contact via <https://github.com/SPauly/Habitify>
+
+/// This file implements a thread safe EventBus system for communication between
+/// the different compartments. Data is shared in a Publisher-Listener pattern
+/// were each Publisher can share events of a fixed type. The Listeners can read
+/// or pull these events from the Publisher.
+/// Interface:
+///       - template<typename EvType>Publisher: this interface to the EventBus
+///       stores the events and takes care of data management and sharing.
+///       - Listener serves as interface to the Publisher and exposes reading
+///       functionality.
+///           NOTE: EvType is the type which is used to instatiate the Event<T>
+///           object e.g. Event<int>
+///       - EventBus: the EventBus is a singleton that stores the matching
+///       Publisher and Listener objects together. It should only be accessed
+///       via Publisher and Listener
+
 #ifndef HABITIFY_SRC_CORE_EVENT_BUS_EVENT_BUS_H_
 #define HABITIFY_SRC_CORE_EVENT_BUS_EVENT_BUS_H_
 
@@ -13,121 +46,270 @@
 
 namespace habitify_core {
 
-class Publisher;
+// Forward declarations
+namespace internal {
+class internal::Channel;
+}
 class Listener;
+class EventBus;
 
+namespace internal {
+/// PublisherBase is used as a way of storing Publisher in the EventBus. The
+/// actual functionality is implemented by the derived class. It needs to be
+/// inherated from. Use Publisher as the interface to EventBus!
+class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
+ public:
+  // The Listener needs to be a friend class to access the provided ReadFoo()
+  // functions.
+  friend class ::habitify_core::Listener;
+
+  PublisherBase();
+  PublisherBase(const ChannelIdType& channel);
+  virtual ~PublisherBase() = default;
+
+  // PublisherBase is not copyable due to the use of std::shared_mutex
+  PublisherBase(const PublisherBase&) = delete;
+  const PublisherBase& operator=(const PublisherBase&) = delete;
+
+  // Getters and Setters:
+  inline const ChannelIdType& get_channel_id() { return channel_id_; }
+  inline const bool get_is_registered() { return is_registered_; }
+  /// Returns a conditonal_variable_any that is notified by Publish().
+  inline std::shared_ptr<std::condition_variable_any> get_cv() { return cv_; }
+
+  /// PublisherBase::HasNews(size_t index) checks if there are unread events for
+  /// the caller based on the specified index. TODO: take into account that
+  /// events can be removed from the que.
+  virtual bool HasNews(size_t index) { return false; }
+
+  /// TryRegisterChannel(const ChannelIdType& channel) tries to add the
+  /// Publisher to the EventBus on the specified channel.
+  /// Returns false if the attempt fails or if the Publisher already has been
+  /// registered. NOTE that this should only be called once.
+  bool TryRegisterChannel(const ChannelIdType& channel);
+
+  /// PublisherBase::Publish(std::unique_ptr< const EventBase>) is implemented
+  /// by the derived class Publisher. It takes ownership of the event and
+  /// provides thread safe access.
+  template <typename EvTyp>
+  bool Publish(std::unique_ptr<const Event<EvTyp>> event) {
+    return PublishImpl(std::move(event));
+  }
+
+ protected:
+  // This function needs to be implemented by the derived class.
+  virtual bool PublishImpl(std::unique_ptr<const EventBase> event) {
+    return false;
+  }
+
+ private:
+  /// This function is called by Listener::ReadLatest and is implemented by
+  /// the derived class.
+  virtual const std::shared_ptr<const EventBase> ReadLatestImpl() {
+    return nullptr;
+  }
+
+ protected:
+  mutable std::shared_mutex mux_;
+  std::shared_ptr<std::condition_variable_any> cv_;
+  std::shared_ptr<Channel> channel_;
+
+ private:
+  bool is_registered_ = false;
+  /// channel_id_ refers to a predefined ChannelId and is used for
+  /// identification by the Listener.
+  ChannelIdType channel_id_;
+  std::shared_ptr<EventBus> event_bus_;
+};
+
+/// Channel is used to store the Publisher and Listener objects together.
+/// It is used internally by the EventBus and should not be used directly.
+class Channel {
+ public:
+  Channel() = delete;
+  Channel(const ChannelIdType& channel_id,
+          std::shared_ptr<PublisherBase> publisher = nullptr);
+  ~Channel() = default;
+
+  // Channel is not copyable due to the use of std::shared_mutex
+  Channel(const Channel&) = delete;
+  const Channel& operator=(const Channel&) = delete;
+
+  // Accessors
+  inline const ChannelIdType& get_channel_id() { return channel_id_; }
+  inline std::shared_ptr<PublisherBase> get_publisher() { return publisher_; }
+
+  /// Adds a new Listener to the Channel.
+  void RegisterListener(std::shared_ptr<Listener> listener);
+
+  /// Registers the Publisher.
+  std::shared_ptr<PublisherBase> RegisterPublisher(
+      std::shared_ptr<PublisherBase> publisher);
+
+ private:
+  std::shared_mutex mux_;
+
+  ChannelIdType channel_id_;
+  std::shared_ptr<PublisherBase> publisher_;
+  std::vector<std::shared_ptr<Listener>> listeners_;
+};
+}  // namespace internal
+
+/// Publisher manages objects of type Event<EvTyp> and publishes the data to the
+/// Listener.
+/// It is designed to be thread safe so that multiple Listeners can access the
+/// data concurrently.
+/// Usage:
+///       std::unique_ptr<Event<int>> event;
+///       Publisher<int> p(0); or p.TryRegisterChannel(0);
+///       p.Publish(std::move(event));
+template <typename EvTyp>
+class Publisher : public internal::PublisherBase {
+ public:
+  Publisher();
+  Publisher(const ChannelIdType& channel);
+  /// This constructor attempts to publish the event directly after registering
+  /// the channel.
+  Publisher(const ChannelIdType& channel,
+            std::unique_ptr<const EventBase> event);
+  ~Publisher() = default;
+
+ protected:
+  /// See PublisherBase::Publish(std::unique_ptr<const EventBase>)
+  virtual bool PublishImpl(std::unique_ptr<const EventBase> event) override {
+    std::unique_lock<std::shared_mutex> lock(mux_);
+
+    event_storage_.emplace(writer_index_, std::move(event));
+    cv_->notify_all();
+
+    writer_index_++;
+    return true;
+  }
+
+ private:
+  /// See PublisherBase::ReadLatestImpl()
+  virtual const std::shared_ptr<const EventBase> ReadLatestImpl() override {
+    std::shared_lock<std::shared_mutex> lock(mux_);
+
+    if (event_storage_.empty()) return nullptr;
+
+    auto event = event_storage_.find(writer_index_ - 1);
+    if (event == event_storage_.end()) return nullptr;
+
+    return event->second;
+  }
+
+ private:
+  std::unordered_map<int, std::shared_ptr<const Event<EvTyp>>> event_storage_;
+  size_t writer_index_ = 0;
+};
+
+/// Listener is used to read events from the Publisher. It is designed to be
+/// thread safe. Usage:
+///       Listener l(0); or l.SubscribeTo(0);
+///       if(l.HasNews()) auto event = l.ReadLatest<int>();
+class Listener {
+ public:
+  Listener();
+  Listener(const ChannelIdType& channel);
+  virtual ~Listener() = default;
+
+  // Listener is not copyable due to the use of std::shared_mutex
+  Listener(const Listener&) = delete;
+  const Listener& operator=(const Listener&) = delete;
+
+  /// Attempts to subscribe to the specified channel. If no Publisher is set it
+  /// creates a new Channel. The Channel then calls SubscribeTo() again to set
+  /// the Publisher once one was added.
+  void SubscribeTo(const ChannelIdType& channel);
+
+  /// Returns the latest event published by the Publisher. If there are no
+  /// events returns nullptr.
+  /// Checks if EvTyp matches the type of the event safed in the Publisher.
+  template <typename EvTyp>
+  const std::shared_ptr<const Event<EvTyp>> ReadLatest();
+
+  inline bool HasNews() {
+    return ValidatePublisher() ? publisher_->HasNews(read_index_) : false;
+  }
+
+ private:
+  /// Checks if the Publisher is valid and if the Listener is subscribed to it.
+  /// Attempts to subscribe to the channel if not.
+  bool ValidatePublisher();
+
+ private:
+  std::shared_mutex mux_data_;
+  size_t read_index_ = 0;
+
+  /// channel_id_ refers to a predefined ChannelId and is used to identify the
+  /// Publisher.
+  ChannelIdType channel_id_;
+
+  /// This might be nullptr if the Listener is not subscribed to a Publisher.
+  std::shared_ptr<internal::PublisherBase> publisher_;
+  std::shared_ptr<EventBus> event_bus_;
+};
+
+/// EventBus establishes the connection between Publisher and Listener objects.
+/// Each Publisher is assigned to one or more Channel object. Each Channel
+/// however is limited to one MessageType. Multiple Listener objects can
+/// subscribe to that Channel.
+/// EventBus is designed to be thread safe and used as a singleton. The class is
+/// mostly used internally.
+/// Use Publisher and Listener as interface.
 class EventBus {
  public:
+  // The PublisherBase needs to be a friend class to access register itself.
+  friend class internal::PublisherBase;
+
+  // EventBus() is private since this is a singleton
   ~EventBus();
 
-  // we use mutexes so this class needs to be noncopyable
+  // EventBus is noncopyable
   EventBus(const EventBus&) = delete;
   EventBus& operator=(const EventBus&) = delete;
 
+  /// Construct and access the EventBus via this function.
+  /// NOTE that EventBus cannot be constructed via a constructor.
+  /// It can be more efficient to store the returned shared_ptr for future use
+  /// than to call this function.
   inline static std::shared_ptr<EventBus> get_instance() {
     static std::shared_ptr<EventBus> instance(new EventBus);
     return instance;
   }
 
-  std::shared_ptr<Publisher> RegisterPublisher(
-      std::shared_ptr<Publisher> publisher);
-  std::shared_ptr<Publisher> RequestPublishing(const ChannelIdType& channel,
-                                               bool need_response = false);
-  std::shared_ptr<Publisher> RequestPublishing(
-      const ChannelIdType& channel, std::unique_ptr<const EventBase> event,
-      bool need_response = false);
+  /// Creates a new Channel and assignes the Publisher to it.
+  /// If the channel already exists it manipulates the provided shared_ptr to
+  /// point to the registered Publisher. Prefer using
+  /// Publisher<T>::TryRegisterChannel() instead. This is mostly used
+  /// internally.
+  std::shared_ptr<internal::Channel> RegisterPublisher(
+      const ChannelIdType& channel_id,
+      std::shared_ptr<internal::PublisherBase> publisher);
 
-  std::shared_ptr<Publisher> GetPublisher(const ChannelIdType& channel);
+  /// Attempts to register the Listener to the specified channel.
+  /// Creates a new Channel without a Publisher if the channel does not exist.
+  /// Prefer using Listener::SubscribeTo() instead. This is mostly used
+  /// internally.
+  std::shared_ptr<internal::Channel> RegisterListener(
+      const ChannelIdType& channel_id, std::shared_ptr<Listener> listener);
+
+  /// Returns the Publisher assigned to the specified channel.
+  std::shared_ptr<internal::PublisherBase> GetPublisher(
+      const ChannelIdType& channel);
 
  private:
+  // This is a singleton class so the constructor needs to be private.
   EventBus() = default;
 
  private:
   mutable std::shared_mutex mux_channels_;
 
-  std::unordered_map<ChannelIdType, std::shared_ptr<Publisher>> channels_;
-  std::deque<std::shared_ptr<Publisher>> cache_;
-};
-
-class Publisher {
- public:
-  friend class Listener;
-
-  Publisher();
-  Publisher(const ChannelIdType& channel);
-  Publisher(const ChannelIdType& channel,
-            std::unique_ptr<const EventBase> event);
-  ~Publisher() = default;
-
-  Publisher(const Publisher&) = delete;
-  const Publisher& operator=(const Publisher&) = delete;
-
-  void Publish(std::unique_ptr<const EventBase> event);
-
-  inline const ChannelIdType& get_channel_id() { return channel_id_; }
-  inline const ChannelIdType& get_response_channel_id() {
-    return response_channel_id_;
-  }
-
- private:
-  const std::shared_ptr<const EventBase> ReadLatest() const;
-
-  bool HasNext(size_t index);
-  bool Wait(int ms, size_t index);
-
- private:
-  mutable std::shared_mutex mux_events_;
-  std::shared_ptr<std::condition_variable_any> cv_;
-
-  size_t map_index_ = 0;
-  std::unordered_map<int, std::shared_ptr<const EventBase>> event_map_;
-
-  ChannelIdType channel_id_, response_channel_id_;
-};
-
-class Listener {
- public:
-  Listener();
-  Listener(const ChannelIdType& channel);
-  ~Listener() = default;
-
-  bool SubscribeTo(const ChannelIdType& channel);
-
-  const std::shared_ptr<const EventBase> ReadLatest();
-
-  inline bool Wait(int ms = 0) {
-    return ValidatePublisher() ? publisher_->Wait(ms, read_index_) : false;
-  }
-  inline bool HasNews() {
-    return ValidatePublisher() ? publisher_->HasNext(read_index_) : false;
-  }
-  void EnableCallback(std::function<void()> callback) {}
-
- private:
-  inline bool Listener::ValidatePublisher() const {
-    return publisher_ ? true
-                      : (event_bus_->GetPublisher(channel_id_) != nullptr);
-  }
-
- private:
-  ChannelIdType channel_id_;
-  std::shared_ptr<Publisher> publisher_;
-
-  std::shared_ptr<EventBus> event_bus_;
-  size_t read_index_ = 0;
+  // Channels are stored together with their ID for fast lookups.
+  std::unordered_map<ChannelIdType, internal::Channel> channels_;
 };
 
 }  // namespace habitify_core
 
 #endif  // HABITIFY_SRC_CORE_EVENT_BUS_EVENT_BUS_H_
-
-/*
-Usage:
-
-Event<proto::PingMessage> e("hello");
-Publisher p;
-auto ret_channel = p.publish(e, true);
-Listener l(ret_channel);
-if(l.wait())
-    std::string response = l.pull<std::string>();
-*/
