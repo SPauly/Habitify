@@ -21,8 +21,8 @@ Application::~Application() {
 }
 
 void Application::Run() {
-  Publisher<int> p;
-  p.TryRegisterChannel(0);
+  std::shared_ptr<Publisher<int>> p = Publisher<int>::Create();
+  p->TryRegisterChannel(0);
   int ping_count = 0;
 
   Event<int> e(habitify_core::EventType::TEST, 0, &ping_count);
@@ -30,7 +30,7 @@ void Application::Run() {
   while (std::cin.get()) {
     ping_count++;
     std::cout << "Sending Ping: " << ping_count << std::endl;
-    p.Publish(std::make_unique<const Event<int>>(e));
+    p->Publish(std::make_unique<const Event<int>>(e));
   }
 }
 

@@ -26,9 +26,3 @@ grpc_deps()
 load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
 
 grpc_extra_deps()
-
-# load googletest
-local_repository(
-    name = "com_google_googletest",
-    path = "third_party/googletest",
-)

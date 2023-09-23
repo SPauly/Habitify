@@ -33,11 +33,12 @@ bool PublisherBase::TryRegisterChannel(const ChannelIdType& channel) {
   std::unique_lock<std::shared_mutex> lock(mux_);
   if (is_registered_) return false;
 
-  // The Publisher is stored as a shared_ptr by the channel to properly handle
-  // its lifetime.
-  channel_ = event_bus_->RegisterPublisher(channel, shared_from_this());
+  channel_ = event_bus_->GetChannel(channel);
 
   if (channel_) {
+    // The Publisher is stored as a shared_ptr by the channel to properly handle
+    // its lifetime.
+    channel_->RegisterPublisher(shared_from_this());
     channel_id_ = channel;
     is_registered_ = true;
   }
@@ -51,6 +52,9 @@ Channel::Channel(const ChannelIdType& channel,
 
 void Channel::RegisterListener(std::shared_ptr<Listener> listener) {
   std::unique_lock<std::shared_mutex> lock(mux_);
+  if (std::find(listeners_.begin(), listeners_.end(), listener) !=
+      listeners_.end())
+    return;
   listeners_.push_back(listener);
 }
 
@@ -77,20 +81,6 @@ std::shared_ptr<PublisherBase> Channel::RegisterPublisher(
 
 }  // namespace internal
 
-template <typename EvTyp>
-Publisher<EvTyp>::Publisher() : PublisherBase() {}
-
-template <typename EvTyp>
-Publisher<EvTyp>::Publisher(const ChannelIdType& channel)
-    : PublisherBase(channel) {}
-
-template <typename EvTyp>
-Publisher<EvTyp>::Publisher(const ChannelIdType& channel,
-                            std::unique_ptr<const internal::EventBase> event)
-    : Publisher(channel) {
-  this->Publish(std::move(event));
-}
-
 Listener::Listener() : event_bus_(EventBus::get_instance()) {}
 
 Listener::Listener(const ChannelIdType& channel)
@@ -100,8 +90,11 @@ Listener::Listener(const ChannelIdType& channel)
 
 bool Listener::SubscribeTo(const ChannelIdType& channel) {
   std::unique_lock<std::shared_mutex> lock(mux_);
-  channel_ = event_bus_->RegisterListener(channel, shared_from_this());
+  channel_ = event_bus_->GetChannel(channel);
   if (channel_) {
+    // The Listener is stored as a shared_ptr by the channel to properly handle
+    // its lifetime.
+    channel_->RegisterListener(shared_from_this());
     publisher_ = channel_->get_publisher();
     channel_id_ = channel;
     read_index_ = 0;
@@ -118,44 +111,16 @@ bool Listener::ValidatePublisher() {
   return (bool)publisher_;
 }
 
-std::shared_ptr<internal::Channel> EventBus::RegisterPublisher(
-    const ChannelIdType& channel_id,
-    std::shared_ptr<internal::PublisherBase> publisher) {
-  std::unique_lock<std::shared_mutex> lock(mux_channels_);
+std::shared_ptr<internal::Channel> EventBus::GetChannel(
+    const ChannelIdType& channel) {
+  std::shared_lock<std::shared_mutex> lock(mux_);
+  auto it = channels_.find(channel);
+  if (it != channels_.end()) return it->second;
 
-  if (channels_.find(channel_id) != channels_.end()) {
-    // this means there already is a channel with this id so we need to check if
-    // it is assigned a Channel and add one if needed. This is done by the
-    // Channel::RegisterPublsher()
-    publisher = channels_.at(channel_id)->RegisterPublisher(publisher);
-    return channels_.at(channel_id);
-  }
+  // If the channel does not exist yet we create it.
+  auto channel_ptr = std::make_shared<internal::Channel>(channel);
+  channels_.emplace(std::make_pair(channel, channel_ptr));
 
-  std::shared_ptr<internal::Channel> channel =
-      std::make_shared<internal::Channel>(channel_id, publisher);
-  channels_.emplace(std::make_pair(channel_id, channel));
-
-  return channel;
+  return channel_ptr;
 }
-
-std::shared_ptr<internal::Channel> EventBus::RegisterListener(
-    const ChannelIdType& channel_id, std::shared_ptr<Listener> listener) {
-  std::unique_lock<std::shared_mutex> lock(mux_channels_);
-
-  if (channels_.find(channel_id) != channels_.end()) {
-    // since there already is a channel with this id we can just register the
-    // Listener
-    channels_.at(channel_id)->RegisterListener(listener);
-    return channels_.at(channel_id);
-  } else {
-    // we need to create a new channel and register the Listener to it. Once a
-    // new Publisher is registered to the channel the Listener will be updated.
-    std::shared_ptr<internal::Channel> channel =
-        std::make_shared<internal::Channel>(channel_id);
-    channel->RegisterListener(listener);
-    channels_.emplace(std::make_pair(channel_id, channel));
-    return channel;
-  }
-}
-
 }  // namespace habitify_core
