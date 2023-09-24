@@ -181,7 +181,7 @@ class Publisher : public internal::PublisherBase {
   static std::shared_ptr<Publisher<EvTyp>> Create(
       const ChannelIdType& channel) {
     auto ret = std::shared_ptr<Publisher<EvTyp>>(new Publisher<EvTyp>());
-    // RegisterChannel cannot be called from insede the constructor of Publisher
+    // RegisterChannel cannot be called from inside the constructor of Publisher
     // since it needs to create a shared_from_this() which is not possible
     // before the object is fully constructed.
     ret->RegisterChannel(channel);
@@ -208,6 +208,7 @@ class Publisher : public internal::PublisherBase {
 
     auto derived_event = std::make_shared<const Event<EvTyp>>(
         *dynamic_cast<const Event<EvTyp>*>(event.get()));
+    if (!derived_event) assert(false, "Event must be of same type as EvTyp!");
     event_storage_.emplace(writer_index_, derived_event);
     cv_->notify_all();
 

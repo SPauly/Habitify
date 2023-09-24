@@ -19,7 +19,9 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <string>
 
+#include "src/core/event_bus/event.h"
 #include "src/core/event_bus/event_bus.h"
 
 namespace habitify_core {
@@ -37,21 +39,55 @@ class PublisherBaseTest : public ::testing::Test {
 };
 
 // Tests that the PublisherBase constructor properly initializes the object.
-TEST_F(PublisherBaseTest, ConstructPublisherBase) {
-  std::shared_ptr<::habitify_core::internal::PublisherBase> publisher_base =
-      std::make_shared<::habitify_core::internal::PublisherBase>();
-  EXPECT_EQ(publisher_base->get_channel_id(), 0);
-  EXPECT_EQ(publisher_base->get_is_registered(), false);
-  ASSERT_NE(publisher_base->get_cv(), nullptr);
+TEST_F(PublisherBaseTest, IsInitializedProperly) {
+  ASSERT_NE(publisher_base_, nullptr);
+  EXPECT_EQ(publisher_base_->get_channel_id(), 0);
+  EXPECT_EQ(publisher_base_->get_is_registered(), false);
+  EXPECT_NE(publisher_base_->get_cv(), nullptr);
 }
 
 // Tests that the PublisherBase properly registers a channel.
-TEST_F(PublisherBaseTest, RegisterPublisher) {
-  ASSERT_EQ(publisher_base_->get_is_registered(), false);
-  publisher_base_->RegisterChannel(1);
-  ASSERT_EQ(publisher_base_->get_channel_id(), 1);
-  ASSERT_EQ(publisher_base_->get_is_registered(), true);
+TEST_F(PublisherBaseTest, IsRegisteredProperly) {
+  ASSERT_NE(publisher_base_, nullptr);
+  ASSERT_EQ(publisher_base_->RegisterChannel(1), true);
+  EXPECT_EQ(publisher_base_->get_channel_id(), 1);
+  EXPECT_EQ(publisher_base_->get_is_registered(), true);
 }
+
+class PublisherTest : public ::testing::Test {
+ protected:
+  PublisherTest() {
+    publisher_int_ = ::habitify_core::Publisher<int>::Create();
+    publisher_string_ = ::habitify_core::Publisher<std::string>::Create();
+  }
+  std::shared_ptr<::habitify_core::Publisher<int>> publisher_int_;
+  ::habitify_core::Event<int> event_int_{::habitify_core::EventType::TEST, 0,
+                                         0};
+  std::shared_ptr<::habitify_core::Publisher<std::string>> publisher_string_;
+  ::habitify_core::Event<std::string> event_string_{
+      ::habitify_core::EventType::TEST, 0, nullptr};
+};
+
+// Tests that the Publisher constructor properly initializes the object.
+TEST_F(PublisherTest, CreationWorks) {
+  ASSERT_NE(publisher_int_, nullptr);
+  EXPECT_EQ(publisher_int_->get_channel_id(), 0);
+  EXPECT_EQ(publisher_int_->get_is_registered(), false);
+  EXPECT_NE(publisher_int_->get_cv(), nullptr);
+
+  std::shared_ptr<::habitify_core::Publisher<int>> publisher_test_c2 =
+      ::habitify_core::Publisher<int>::Create(1);
+  ASSERT_NE(publisher_test_c2, nullptr);
+  ASSERT_EQ(publisher_test_c2->get_is_registered(), true);
+  EXPECT_EQ(publisher_test_c2->get_channel_id(), 1);
+}
+
+TEST_F(PublisherTest, PublishCorrectness) {
+  ASSERT_NE(publisher_int_, nullptr);
+  publisher_int_->RegisterChannel(1);
+}
+
+TEST_F(PublisherTest, DetectNews) {}
 
 }  // namespace
 }  // namespace habitify_testing
