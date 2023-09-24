@@ -22,7 +22,7 @@ Application::~Application() {
 
 void Application::Run() {
   std::shared_ptr<Publisher<int>> p = Publisher<int>::Create();
-  p->TryRegisterChannel(0);
+  p->RegisterChannel(0);
   int ping_count = 0;
 
   Event<int> e(habitify_core::EventType::TEST, 0, &ping_count);

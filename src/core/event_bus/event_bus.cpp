@@ -25,11 +25,8 @@ namespace internal {
 PublisherBase::PublisherBase()
     : cv_(std::make_shared<std::condition_variable_any>()),
       event_bus_(EventBus::get_instance()) {}
-PublisherBase::PublisherBase(const ChannelIdType& channel) : PublisherBase() {
-  TryRegisterChannel(channel);
-}
 
-bool PublisherBase::TryRegisterChannel(const ChannelIdType& channel) {
+bool PublisherBase::RegisterChannel(const ChannelIdType& channel) {
   std::unique_lock<std::shared_mutex> lock(mux_);
   if (is_registered_) return false;
 

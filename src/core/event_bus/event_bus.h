@@ -69,7 +69,6 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   friend class ::habitify_core::Listener;
 
   PublisherBase();
-  PublisherBase(const ChannelIdType& channel);
   virtual ~PublisherBase() = default;
 
   // PublisherBase is not copyable due to the use of std::shared_mutex
@@ -87,17 +86,18 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   /// events can be removed from the que.
   virtual bool HasNews(size_t index) { return false; }
 
-  /// TryRegisterChannel(const ChannelIdType& channel) tries to add the
+  /// RegisterChannel(const ChannelIdType& channel) tries to add the
   /// Publisher to the EventBus on the specified channel.
   /// Returns false if the attempt fails or if the Publisher already has been
   /// registered. NOTE that this should only be called once.
-  bool TryRegisterChannel(const ChannelIdType& channel);
+  bool RegisterChannel(const ChannelIdType& channel);
 
   /// PublisherBase::Publish(std::unique_ptr< const internal::EventBase>) is
   /// implemented by the derived class Publisher. It takes ownership of the
   /// event and provides thread safe access.
   template <typename EvTyp>
   bool Publish(std::unique_ptr<const Event<EvTyp>> event) {
+    if (!is_registered_) return false;
     return PublishImpl(std::move(event));
   }
 
@@ -123,7 +123,7 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   bool is_registered_ = false;
   /// channel_id_ refers to a predefined ChannelId and is used for
   /// identification by the Listener.
-  ChannelIdType channel_id_;
+  ChannelIdType channel_id_ = 0;
   std::shared_ptr<EventBus> event_bus_;
 };
 
@@ -167,7 +167,7 @@ class Channel {
 /// Usage:
 ///       std::unique_ptr<Event<int>> event;
 ///       std::shared_ptr<Publisher<int>> p = Publisher<int>::Create();
-///       p->TryRegisterChannel(0);
+///       p->RegisterChannel(0);
 ///       p.Publish(std::move(event));
 template <typename EvTyp>
 class Publisher : public internal::PublisherBase {
@@ -180,7 +180,12 @@ class Publisher : public internal::PublisherBase {
   }
   static std::shared_ptr<Publisher<EvTyp>> Create(
       const ChannelIdType& channel) {
-    return std::shared_ptr<Publisher<EvTyp>>(new Publisher<EvTyp>(channel));
+    auto ret = std::shared_ptr<Publisher<EvTyp>>(new Publisher<EvTyp>());
+    // RegisterChannel cannot be called from insede the constructor of Publisher
+    // since it needs to create a shared_from_this() which is not possible
+    // before the object is fully constructed.
+    ret->RegisterChannel(channel);
+    return ret;
   }
   ~Publisher() = default;
 
@@ -212,7 +217,6 @@ class Publisher : public internal::PublisherBase {
 
  private:
   Publisher() : PublisherBase() {}
-  Publisher(const ChannelIdType& channel) : PublisherBase(channel) {}
 
   /// See PublisherBase::ReadLatestImpl()
   virtual const std::shared_ptr<const internal::EventBase> ReadLatestImpl()
