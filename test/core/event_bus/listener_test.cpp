@@ -34,9 +34,10 @@ class ListenerTest : public ::testing::Test {
   std::shared_ptr<::habitify_core::Listener> listener_;
 
   std::shared_ptr<::habitify_core::Publisher<int>> publisher_int_;
-  std::shared_ptr < ::habitify_core::Publisher<std::string> publisher_string_;
+  std::shared_ptr<::habitify_core::Publisher<std::string>> publisher_string_;
+  int text_ev_int_ = 418;
   ::habitify_core::Event<int> event_int_{::habitify_core::EventType::TEST, 0,
-                                         418};
+                                         &text_ev_int_};
   std::string test_ev_string_ = "TestString";
   ::habitify_core::Event<std::string> event_string_{
       ::habitify_core::EventType::TEST, 0, &test_ev_string_};
@@ -68,8 +69,10 @@ TEST_F(ListenerTest, TestDataRetrieval) {
   listener_->SubscribeTo(2);
   publisher_string_->Publish(
       std::make_unique<const Event<std::string>>(event_string_));
-  EXPECT_STREQ(*listener_->ReadLatest<std::string>()->GetData<std::string>(),
-               "TestString");
+  EXPECT_STRCASEEQ(
+      listener_->ReadLatest<std::string>()->GetData<std::string>()->c_str(),
+      "TestString")
+      << "Data retrieval for std::string not working.";
 
   // Test assertion of accessing the wrong data
   EXPECT_DEATH(listener_->ReadLatest<int>(),
