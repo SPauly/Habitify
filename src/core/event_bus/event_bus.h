@@ -276,12 +276,19 @@ class Listener : public std::enable_shared_from_this<Listener> {
     auto event = publisher_->ReadLatestImpl();
     if (event == nullptr) return nullptr;
 
-    return std::static_pointer_cast<const Event<EvTyp>>(event);
+    auto latest_converted =
+        std::dynamic_pointer_cast<const Event<EvTyp>>(event);
+    if (!latest_converted)
+      assert(false, "ReadLatest tried retrieving data of wrong format");
+
+    return latest_converted;
   }
 
   inline bool HasNews() {
     return ValidatePublisher() ? publisher_->HasNews(read_index_) : false;
   }
+
+  inline const ChannelIdType get_channel_id() { return channel_id_; }
 
  private:
   Listener();
@@ -297,7 +304,7 @@ class Listener : public std::enable_shared_from_this<Listener> {
 
   /// channel_id_ refers to a predefined ChannelId and is used to identify the
   /// Publisher.
-  ChannelIdType channel_id_;
+  ChannelIdType channel_id_ = 0;
   std::shared_ptr<internal::Channel> channel_;
 
   /// This might be nullptr if the Listener is not subscribed to a Publisher.
