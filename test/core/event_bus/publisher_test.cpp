@@ -84,10 +84,29 @@ TEST_F(PublisherTest, CreationWorks) {
 
 TEST_F(PublisherTest, PublishCorrectness) {
   ASSERT_NE(publisher_int_, nullptr);
-  publisher_int_->RegisterChannel(1);
+  ASSERT_EQ(publisher_int_->RegisterChannel(1), true);
+  EXPECT_EQ(
+      publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_)),
+      true);
+
+  ASSERT_NE(publisher_string_, nullptr);
+  ASSERT_EQ(publisher_string_->RegisterChannel(2), true);
+  EXPECT_EQ(publisher_string_->Publish(
+                std::make_unique<const Event<std::string>>(event_string_)),
+            true);
+
+  // Assert that pushing a wrong Event<EvTyp> results in an assertion
+  ASSERT_DEATH(publisher_int_->Publish(
+                   std::make_unique<const Event<std::string>>(event_string_)),
+               "Event must be of same type as EvTyp!");
 }
 
-TEST_F(PublisherTest, DetectNews) {}
+TEST_F(PublisherTest, DetectNews) {
+  ASSERT_NE(publisher_int_, nullptr);
+  publisher_int_->RegisterChannel(1);
+  publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_));
+  EXPECT_EQ(publisher_int_->HasNews(0), true);
+}
 
 }  // namespace
 }  // namespace habitify_testing

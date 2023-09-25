@@ -147,7 +147,8 @@ class Channel {
   /// Adds a new Listener to the Channel.
   void RegisterListener(std::shared_ptr<Listener> listener);
 
-  /// Registers the Publisher.
+  /// Registers the Publisher. TODO: We need to return a nullptr or break if the
+  /// EvTyps of publisher do not match. When they do we can merge them.
   std::shared_ptr<PublisherBase> RegisterPublisher(
       std::shared_ptr<PublisherBase> publisher);
 
