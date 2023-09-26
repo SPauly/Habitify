@@ -37,6 +37,7 @@
 #ifndef HABITIFY_SRC_CORE_EVENT_BUS_EVENT_BUS_H_
 #define HABITIFY_SRC_CORE_EVENT_BUS_EVENT_BUS_H_
 
+#include <cassert>
 #include <condition_variable>
 #include <deque>
 #include <functional>
@@ -202,7 +203,7 @@ class Publisher : public internal::PublisherBase {
   /// Listener
   virtual bool HasNews(size_t index) override {
     std::shared_lock<std::shared_mutex> lock(mux_);
-    return index < writer_index_;
+    return index <= writer_index_;
   }
 
  protected:
@@ -213,11 +214,11 @@ class Publisher : public internal::PublisherBase {
 
     auto derived_event = std::make_shared<const Event<EvTyp>>(
         *dynamic_cast<const Event<EvTyp>*>(event.get()));
-    if (!derived_event) assert(false, "Event must be of same type as EvTyp!");
+    if (!derived_event) assert(false && "Event must be of same type as EvTyp!");
     event_storage_.emplace(writer_index_, derived_event);
     cv_->notify_all();
 
-    writer_index_++;
+    ++writer_index_;
     return true;
   }
 
@@ -256,7 +257,9 @@ class Listener : public std::enable_shared_from_this<Listener> {
     return std::shared_ptr<Listener>(new Listener());
   }
   static std::shared_ptr<Listener> Create(const ChannelIdType& channel) {
-    return std::shared_ptr<Listener>(new Listener(channel));
+    auto new_channel = std::shared_ptr<Listener>(new Listener());
+    new_channel->SubscribeTo(channel);
+    return new_channel;
   }
   virtual ~Listener() = default;
 
@@ -280,10 +283,9 @@ class Listener : public std::enable_shared_from_this<Listener> {
     auto event = publisher_->ReadLatestImpl();
     if (event == nullptr) return nullptr;
 
-    auto latest_converted =
-        std::dynamic_pointer_cast<const Event<EvTyp>>(event);
+    auto latest_converted = std::static_pointer_cast<const Event<EvTyp>>(event);
     if (!latest_converted)
-      assert(false, "ReadLatest tried retrieving data of wrong format");
+      assert(false && "ReadLatest tried retrieving data of wrong format");
 
     return latest_converted;
   }

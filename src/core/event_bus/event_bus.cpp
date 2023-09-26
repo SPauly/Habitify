@@ -80,11 +80,6 @@ std::shared_ptr<PublisherBase> Channel::RegisterPublisher(
 
 Listener::Listener() : event_bus_(EventBus::get_instance()) {}
 
-Listener::Listener(const ChannelIdType& channel)
-    : event_bus_(EventBus::get_instance()), channel_id_(channel) {
-  this->SubscribeTo(channel);
-}
-
 bool Listener::SubscribeTo(const ChannelIdType& channel) {
   std::unique_lock<std::shared_mutex> lock(mux_);
   channel_ = event_bus_->GetChannel(channel);
