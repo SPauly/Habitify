@@ -142,8 +142,12 @@ class Channel {
 
   // Accessors
   inline const ChannelIdType& get_channel_id() { return channel_id_; }
-  inline std::shared_ptr<PublisherBase> get_publisher() { return publisher_; }
-
+  inline const std::shared_ptr<PublisherBase> get_publisher() {
+    return publisher_;
+  }
+  inline const std::vector<std::shared_ptr<Listener>> get_listeners() {
+    return listeners_;
+  }
   /// Adds a new Listener to the Channel.
   void RegisterListener(std::shared_ptr<Listener> listener);
 
