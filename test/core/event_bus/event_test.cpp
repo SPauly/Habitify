@@ -15,23 +15,26 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 // Contact via <https://github.com/SPauly/Habitify>
+#include "src/habitify_core/event_bus/event.h"
+
 #include <gtest/gtest.h>
 
 #include <memory>
 
-#include "src/core/event_bus/event.h"
-#include "src/core/event_bus/event_bus.h"
-
 namespace habitify_core {
 namespace habitify_testing {
 namespace {
-
-class EventBusTest : public ::testing::Test {
- protected:
+TEST(EventTest, ConstructionAndConversion) {
+  int ie = 12;
+  ::habitify_core::Event<int> int_event{::habitify_core::EventType::TEST, 0,
+                                        &ie};
+  std::unique_ptr<::habitify_core::internal::EventBase> int_event_base =
+      std::make_unique(int_event);
+  EXPECT_EQ(int_event_base->MutableGetData<int>(), &ie);
+  EXPECT_EQ(*int_event_base->GetData<int>(), ie);
+  // TODO: Once assert for type missmatch is added to EventBase I need to check
+  // for EXPECT_DEATH
 }
-
 }  // namespace
-
 }  // namespace habitify_testing
-
 }  // namespace habitify_core

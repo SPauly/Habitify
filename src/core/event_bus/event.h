@@ -39,6 +39,8 @@ class EventBase {
   inline void set_event_type(const EventType &etype) { event_type_ = etype; }
   inline void set_channel_id(const ChannelIdType &id) { channel_id_ = id; }
 
+  // TODO: Add assert to check for missmatch of type. Do this after fixing the
+  // error in PublisherTest
   template <typename T>
   T *MutableGetData() {
     return static_cast<T *>(GetMutableDataImpl());
@@ -55,6 +57,8 @@ class EventBase {
 
  private:
   EventType event_type_;
+  // TODO: remove channel ID since this is handled by the Publisher and Listener
+  // anyways.
   ChannelIdType channel_id_ = 0;
 };
 }  // namespace internal

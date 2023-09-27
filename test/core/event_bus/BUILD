@@ -6,6 +6,9 @@ cc_test(
     srcs = [
         "listener_test.cpp",
         "publisher_test.cpp",
+        "channel_test.cpp",
+        "event_test.cpp",
+        "event_bus_system_test.cpp",
     ],
     deps = [
         "//src/core/event_bus:eventbus",
