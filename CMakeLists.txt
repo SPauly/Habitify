@@ -25,54 +25,60 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set the Project name
 project(Habitify)
 
-# Include necessary configuration
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake)
+# Include necessary configuration and dependencies
+include(${PROJECT_SOURCE_DIR}/cmake/config.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/imgui_glfw.cmake)
 
 # Build the utilities: event_bus, ...
 add_library(event_bus 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/event_bus/event_bus.cpp"
+    "${PROJECT_SOURCE_DIR}/src/core/event_bus/event_bus.cpp"
 )
 
 target_include_directories( event_bus PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/event_bus/event.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/event_bus/event_bus.h"
+    "${PROJECT_SOURCE_DIR}/"
 )
 
 # Build the core library
 add_library(habitify_core 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/application.cpp"
+    "${PROJECT_SOURCE_DIR}/src/core/application.cpp"
 )
 
 target_include_directories(habitify_core PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/application.h"
+    "${PROJECT_SOURCE_DIR}/"
 )
 
 target_link_libraries(habitify_core PUBLIC
     event_bus
 )
 
-# Build the frontend
+# Build the frontend which depends on imgui, glfw and OpenGL
+set(OpenGL_GL_PREFERENCE GLVND)
+
+find_package(OpenGL REQUIRED)
+
 add_library(habitify_frontend
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/frontend/imgui_frontend.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/frontend/layer_stack.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/frontend/ping/ping_gui.cpp"
+    "${PROJECT_SOURCE_DIR}/src/frontend/imgui_frontend.cpp"
+    "${PROJECT_SOURCE_DIR}/src/frontend/layer_stack.cpp"
+    "${PROJECT_SOURCE_DIR}/src/frontend/ping/ping_gui.cpp"
 )
 
 target_include_directories(habitify_frontend PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/frontend/imgui_frontend.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/frontend/layer_stack.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/frontend/layer.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/frontend/ping/ping_gui.h"
+    "${PROJECT_SOURCE_DIR}/"
+    "${PROJECT_SOURCE_DIR}/third_party/imgui/"
+    "${PROJECT_SOURCE_DIR}/third_party/imgui/backends/"
+    "${PROJECT_SOURCE_DIR}/third_party/glfw/include/"
 )
 
 target_link_libraries(habitify_frontend PUBLIC 
+    glfw ${GLFW_LIBRARIES} OpenGL::GL
+    imgui
     event_bus
 )
 
 
 # Build the Application
 add_executable(habitify 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/entry_point.cpp"
+    "${PROJECT_SOURCE_DIR}/src/core/entry_point.cpp"
 )
 
 target_link_libraries( habitify PUBLIC
