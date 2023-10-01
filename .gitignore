@@ -1,5 +1,7 @@
-## Ignore Bazel files
+## Ignore Build files
 bazel_out/
+cmake_out/
+
 # Ignore backup files.
 *~
 # Ignore Vim swap files.
