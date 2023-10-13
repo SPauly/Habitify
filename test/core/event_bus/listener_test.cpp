@@ -58,8 +58,10 @@ TEST_F(ListenerTest, ConstructionAndSubscriptionListener) {
 TEST_F(ListenerTest, TestDataRetrieval) {
   // subscribe to Publisher<int>
   listener_->SubscribeTo(1);
+  ASSERT_EQ(listener_->ValidatePublisher(), true);
+
   publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_));
-  EXPECT_EQ(listener_->HasNews(), true);
+
   auto response_int = listener_->ReadLatest<int>();
   ASSERT_NE(response_int, nullptr);
   EXPECT_EQ(*response_int->GetData<int>(), 418)
@@ -67,6 +69,7 @@ TEST_F(ListenerTest, TestDataRetrieval) {
 
   // subscribe to Publisher<std::string>
   listener_->SubscribeTo(2);
+  ASSERT_EQ(listener_->ValidatePublisher(), true);
   publisher_string_->Publish(
       std::make_unique<const Event<std::string>>(event_string_));
   EXPECT_STRCASEEQ(

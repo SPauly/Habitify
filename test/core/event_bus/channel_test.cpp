@@ -19,8 +19,8 @@
 
 #include <memory>
 
-#include "src/habitify_core/event_bus/event.h"
-#include "src/habitify_core/event_bus/event_bus.h"
+#include "src/core/event_bus/event.h"
+#include "src/core/event_bus/event_bus.h"
 
 namespace habitify_core {
 namespace habitify_testing {
@@ -28,7 +28,7 @@ namespace {
 class ChannelTest : public ::testing::Test {
  protected:
   ChannelTest() {
-    publisher_ = ::habitify_core::Publisher<in>::Create();
+    publisher_ = ::habitify_core::Publisher<int>::Create();
     listener_ = ::habitify_core::Listener::Create();
   }
   std::shared_ptr<::habitify_core::Publisher<int>> publisher_;
@@ -45,8 +45,10 @@ TEST_F(ChannelTest, ChannelInitialization) {
 }
 
 TEST_F(ChannelTest, SubscriptionFunctionality) {
+  publisher_->RegisterChannel(1);
   listener_->SubscribeTo(1);
-  EXPECT_EQ(channel_->get_listeners().at(0), listener_);
+  // Check if the channel properly forwards the Publisher to the Listener
+  EXPECT_EQ(listener_->ValidatePublisher(), true);
 }
 
 }  // namespace

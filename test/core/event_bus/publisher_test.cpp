@@ -88,12 +88,16 @@ TEST_F(PublisherTest, PublishCorrectness) {
   EXPECT_EQ(
       publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_)),
       true);
+  EXPECT_EQ(publisher_int_->HasNews(0), true);
+  EXPECT_NE(publisher_int_->GetLatestEvent(), nullptr);
 
   ASSERT_NE(publisher_string_, nullptr);
   ASSERT_EQ(publisher_string_->RegisterChannel(2), true);
   EXPECT_EQ(publisher_string_->Publish(
                 std::make_unique<const Event<std::string>>(event_string_)),
             true);
+  EXPECT_EQ(publisher_string_->HasNews(0), true);
+  EXPECT_NE(publisher_int_->GetLatestEvent(), nullptr);
 
   // Assert that pushing a wrong Event<EvTyp> results in an assertion
   ASSERT_DEATH(publisher_int_->Publish(

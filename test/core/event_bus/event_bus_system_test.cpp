@@ -28,7 +28,7 @@ namespace {
 
 class EventBusTest : public ::testing::Test {
  protected:
-}
+};
 
 }  // namespace
 

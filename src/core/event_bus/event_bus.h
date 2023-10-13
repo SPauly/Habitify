@@ -81,6 +81,11 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   inline const bool get_is_registered() { return is_registered_; }
   /// Returns a conditonal_variable_any that is notified by Publish().
   inline std::shared_ptr<std::condition_variable_any> get_cv() { return cv_; }
+  /// Returns the latest Event as it's base class. This is mostly used for
+  /// testing. Prefer accessing the Data via a Listener object.
+  const std::shared_ptr<const internal::EventBase> GetLatestEvent() {
+    return ReadLatestImpl();
+  }
 
   /// PublisherBase::HasNews(size_t index) checks if there are unread events for
   /// the caller based on the specified index. TODO: take into account that
@@ -203,7 +208,7 @@ class Publisher : public internal::PublisherBase {
   /// Listener
   virtual bool HasNews(size_t index) override {
     std::shared_lock<std::shared_mutex> lock(mux_);
-    return index <= writer_index_;
+    return index < writer_index_;
   }
 
  protected:
@@ -272,6 +277,10 @@ class Listener : public std::enable_shared_from_this<Listener> {
   /// the Publisher once one was added.
   bool SubscribeTo(const ChannelIdType& channel);
 
+  /// Checks if the Publisher is valid and if the Listener is subscribed to it.
+  /// Attempts to subscribe to the channel if not.
+  bool ValidatePublisher();
+
   /// Returns the latest event published by the Publisher. If there are no
   /// events it returns nullptr.
   template <typename EvTyp>
@@ -299,10 +308,6 @@ class Listener : public std::enable_shared_from_this<Listener> {
  private:
   Listener();
   Listener(const ChannelIdType& channel);
-
-  /// Checks if the Publisher is valid and if the Listener is subscribed to it.
-  /// Attempts to subscribe to the channel if not.
-  bool ValidatePublisher();
 
  private:
   std::shared_mutex mux_;
