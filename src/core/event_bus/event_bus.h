@@ -90,13 +90,18 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   /// PublisherBase::HasNews(size_t index) checks if there are unread events for
   /// the caller based on the specified index. TODO: take into account that
   /// events can be removed from the que.
-  virtual bool HasNews(size_t index) { return false; }
+  virtual bool HasNews(size_t index) {
+    assert(false && "HasNews() not implemented");
+    return true;
+  }
 
   /// RegisterChannel(const ChannelIdType& channel) tries to add the
   /// Publisher to the EventBus on the specified channel.
   /// Returns false if the attempt fails or if the Publisher already has been
   /// registered. NOTE that this should only be called once.
   bool RegisterChannel(const ChannelIdType& channel);
+
+  inline const std::shared_ptr<EventBus> get_event_bus() { return event_bus_; }
 
  protected:
   /// This function is called by Listener::ReadLatest and is implemented by
@@ -213,6 +218,8 @@ class Publisher : public internal::PublisherBase {
     return true;
   }
 
+  inline const size_t get_writer_index() { return writer_index_; }
+
  protected:
   /// See PublisherBase::ReadLatestImpl()
   virtual const std::shared_ptr<const internal::EventBase> ReadLatestImpl()
@@ -292,6 +299,8 @@ class Listener : public std::enable_shared_from_this<Listener> {
   }
 
   inline const ChannelIdType get_channel_id() { return channel_id_; }
+  inline const size_t get_read_index() { return read_index_; }
+  inline const std::shared_ptr<EventBus> get_event_bus() { return event_bus_; }
 
  private:
   Listener();

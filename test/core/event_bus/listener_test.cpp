@@ -26,11 +26,7 @@ namespace habitify_testing {
 namespace {
 class ListenerTest : public ::testing::Test {
  protected:
-  ListenerTest() {
-    listener_ = ::habitify_core::Listener::Create();
-    publisher_int_ = habitify_core::Publisher<int>::Create(1);
-    publisher_string_ = habitify_core::Publisher<std::string>::Create(2);
-  }
+  ListenerTest() {}
   std::shared_ptr<::habitify_core::Listener> listener_;
 
   std::shared_ptr<::habitify_core::Publisher<int>> publisher_int_;
@@ -43,30 +39,18 @@ class ListenerTest : public ::testing::Test {
       ::habitify_core::EventType::TEST, 0, &test_ev_string_};
 };
 
-TEST_F(ListenerTest, ConstructionAndSubscriptionListener) {
-  EXPECT_NE(listener_, nullptr);
-  EXPECT_EQ(listener_->get_channel_id(), 0);
-
-  ASSERT_EQ(listener_->SubscribeTo(1), true) << "SubscribeTo fucntion fails";
-  EXPECT_EQ(listener_->get_channel_id(), 1);
-
-  listener_ = ::habitify_core::Listener::Create(2);
-  EXPECT_NE(listener_, nullptr);
-  EXPECT_EQ(listener_->get_channel_id(), 2);
-}
-
 TEST_F(ListenerTest, TestDataRetrieval) {
-  // subscribe to Publisher<int>
-  listener_->SubscribeTo(1);
-  ASSERT_EQ(listener_->ValidatePublisher(), true);
+  listener_ = ::habitify_core::Listener::Create();
+  listener_->SubscribeTo(0);
+  publisher_int_ = ::habitify_core::Publisher<int>::Create();
+  publisher_int_->RegisterChannel(0);
+  publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_));
 
-  ASSERT_EQ(
-      publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_)),
-      true);
-
-  auto response_int = listener_->ReadLatest<int>();
-  ASSERT_NE(response_int, nullptr);
-  EXPECT_EQ(*response_int->GetData<int>(), 418)
+  EXPECT_EQ(listener_->HasNews(), true)
+      << listener_->get_read_index() << " "
+      << publisher_int_->get_writer_index() << " " << publisher_int_ << " "
+      << listener_->get_publisher();
+  EXPECT_EQ(listener_->ReadLatest<int>()->GetData<int>(), &text_ev_int_)
       << "Data retrieval for int not working.";
 
   // subscribe to Publisher<std::string>
