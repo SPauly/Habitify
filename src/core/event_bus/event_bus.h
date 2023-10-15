@@ -276,6 +276,12 @@ class Listener : public std::enable_shared_from_this<Listener> {
   /// Attempts to subscribe to the channel if not.
   bool ValidatePublisher();
 
+  /// RefreshPublisher() is called by the Channel if a Publisher is added to it.
+  inline void RefreshPublisher() {
+    std::unique_lock<std::shared_mutex> lock(mux_);
+    publisher_ = channel_->get_publisher();
+  }
+
   /// Returns the latest event published by the Publisher. If there are no
   /// events it returns nullptr.
   template <typename EvTyp>

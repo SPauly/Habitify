@@ -23,6 +23,8 @@ Application::~Application() {
 void Application::Run() {
   std::shared_ptr<Publisher<int>> p = Publisher<int>::Create();
   p->RegisterChannel(0);
+  std::shared_ptr<Listener> l = Listener::Create();
+  l->SubscribeTo(1);
   int ping_count = 0;
 
   Event<int> e(habitify_core::EventType::TEST, 0, &ping_count);
@@ -31,6 +33,9 @@ void Application::Run() {
     ping_count++;
     std::cout << "Sending Ping: " << ping_count << std::endl;
     p->Publish(std::make_unique<const Event<int>>(e));
+    if (l->HasNews())
+      std::cout << "Ping Received: " << *l->ReadLatest<int>()->GetData<int>()
+                << std::endl;
   }
 }
 

@@ -70,7 +70,7 @@ std::shared_ptr<PublisherBase> Channel::RegisterPublisher(
   // Since a new Publisher was assigned to the channel we need to update all
   // Listeners that are already subscribed to this channel.
   for (auto& listener : listeners_) {
-    listener->SubscribeTo(channel_id_);
+    listener->RefreshPublisher();
   }
 
   return publisher_;

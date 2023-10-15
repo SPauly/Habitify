@@ -15,6 +15,7 @@ class PingGui : public Layer {
 
  private:
   std::shared_ptr<::habitify_core::Listener> listener_;
+  std::shared_ptr<::habitify_core::Publisher<int>> publisher_;
 };
 }  // namespace habitify_frontend
 
