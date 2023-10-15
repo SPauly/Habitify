@@ -98,22 +98,7 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   /// registered. NOTE that this should only be called once.
   bool RegisterChannel(const ChannelIdType& channel);
 
-  /// PublisherBase::Publish(std::unique_ptr< const internal::EventBase>) is
-  /// implemented by the derived class Publisher. It takes ownership of the
-  /// event and provides thread safe access.
-  template <typename EvTyp>
-  bool Publish(std::unique_ptr<const Event<EvTyp>> event) {
-    if (!is_registered_) return false;
-    return PublishImpl(std::move(event));
-  }
-
  protected:
-  // This function needs to be implemented by the derived class.
-  virtual bool PublishImpl(std::unique_ptr<const internal::EventBase> event) {
-    return false;
-  }
-
- private:
   /// This function is called by Listener::ReadLatest and is implemented by
   /// the derived class.
   virtual const std::shared_ptr<const internal::EventBase> ReadLatestImpl() {
@@ -211,25 +196,24 @@ class Publisher : public internal::PublisherBase {
     return index < writer_index_;
   }
 
- protected:
-  /// See PublisherBase::Publish(std::unique_ptr<const internal::EventBase>)
-  virtual bool PublishImpl(
-      std::unique_ptr<const internal::EventBase> event) override {
+  /// Publisher<EvTyp>::Publish(std::unique_ptr< const internal::EventBase>)
+  /// takes ownership of the event and provides thread safe access to the
+  /// Listener.
+  template <typename T>
+  bool Publish(std::unique_ptr<const Event<T>> event) {
+    if (!get_is_registered()) return false;
     std::unique_lock<std::shared_mutex> lock(mux_);
 
-    auto derived_event = std::make_shared<const Event<EvTyp>>(
-        *dynamic_cast<const Event<EvTyp>*>(event.get()));
-    if (!derived_event) assert(false && "Event must be of same type as EvTyp!");
-    event_storage_.emplace(writer_index_, derived_event);
-    cv_->notify_all();
+    auto shared_event =
+        std::shared_ptr<const internal::EventBase>(std::move(event));
+    event_storage_.emplace(writer_index_, shared_event);
 
+    cv_->notify_all();
     ++writer_index_;
     return true;
   }
 
- private:
-  Publisher() : PublisherBase() {}
-
+ protected:
   /// See PublisherBase::ReadLatestImpl()
   virtual const std::shared_ptr<const internal::EventBase> ReadLatestImpl()
       override {
@@ -244,7 +228,11 @@ class Publisher : public internal::PublisherBase {
   }
 
  private:
-  std::unordered_map<int, std::shared_ptr<const Event<EvTyp>>> event_storage_;
+  Publisher() : PublisherBase() {}
+
+ private:
+  std::unordered_map<int, std::shared_ptr<const internal::EventBase>>
+      event_storage_;
   size_t writer_index_ = 0;
 };
 
