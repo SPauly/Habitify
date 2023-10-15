@@ -60,7 +60,9 @@ TEST_F(ListenerTest, TestDataRetrieval) {
   listener_->SubscribeTo(1);
   ASSERT_EQ(listener_->ValidatePublisher(), true);
 
-  publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_));
+  ASSERT_EQ(
+      publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_)),
+      true);
 
   auto response_int = listener_->ReadLatest<int>();
   ASSERT_NE(response_int, nullptr);

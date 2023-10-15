@@ -21,7 +21,7 @@
 
 namespace habitify_core {
 
-enum EventType { TEST };
+enum EventType { TEST, TEST2 };
 
 using ChannelIdType = int;
 

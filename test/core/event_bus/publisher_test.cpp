@@ -61,7 +61,7 @@ class PublisherTest : public ::testing::Test {
     publisher_string_ = ::habitify_core::Publisher<std::string>::Create();
   }
   std::shared_ptr<::habitify_core::Publisher<int>> publisher_int_;
-  ::habitify_core::Event<int> event_int_{::habitify_core::EventType::TEST, 0,
+  ::habitify_core::Event<int> event_int_{::habitify_core::EventType::TEST2, 0,
                                          0};
   std::shared_ptr<::habitify_core::Publisher<std::string>> publisher_string_;
   ::habitify_core::Event<std::string> event_string_{
@@ -88,8 +88,10 @@ TEST_F(PublisherTest, PublishCorrectness) {
   EXPECT_EQ(
       publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_)),
       true);
+  // check that the Event properly was stored
   EXPECT_EQ(publisher_int_->HasNews(0), true);
-  EXPECT_NE(publisher_int_->GetLatestEvent(), nullptr);
+  EXPECT_EQ(publisher_int_->GetLatestEvent()->get_event_type(),
+            ::habitify_core::EventType::TEST2);
 
   ASSERT_NE(publisher_string_, nullptr);
   ASSERT_EQ(publisher_string_->RegisterChannel(2), true);
