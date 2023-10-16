@@ -8,6 +8,7 @@
 namespace habitify_core {
 
 Application::Application() : event_bus_(EventBus::Create()) {
+  imgui_frontend_.SetEventBus(event_bus_);
   frontend_thread_ = new (std::nothrow)
       std::thread(&habitify_frontend::ImGuiFrontend::Run, &imgui_frontend_);
   HAB_ASSERT(frontend_thread_);

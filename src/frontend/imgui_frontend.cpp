@@ -16,12 +16,11 @@ static void glfw_error_callback(int error, const char *description) {
 }
 
 namespace habitify_frontend {
-ImGuiFrontend::ImGuiFrontend(
-    std::shared_ptr<::habitify_core::EventBus> event_bus)
-    : event_bus_(event_bus) {}
+ImGuiFrontend::ImGuiFrontend() {}
 ImGuiFrontend::~ImGuiFrontend() {}
 
 bool ImGuiFrontend::Init() {
+  if (!event_bus_) return is_initialized = false;
   // Setup window
   glfwSetErrorCallback(glfw_error_callback);
   if (!glfwInit()) return is_initialized = false;

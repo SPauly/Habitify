@@ -73,8 +73,7 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   // channel
   friend class ::habitify_core::EventBus;
 
-  PublisherBase() = delete;
-  PublisherBase(std::shared_ptr<EventBus> event_bus);
+  PublisherBase();
   virtual ~PublisherBase() = default;
 
   // PublisherBase is not copyable due to the use of std::shared_mutex
@@ -86,7 +85,6 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   inline const bool get_is_registered() { return is_registered_; }
   /// Returns a conditonal_variable_any that is notified by Publish().
   inline std::shared_ptr<std::condition_variable_any> get_cv() { return cv_; }
-  inline const std::shared_ptr<EventBus> get_event_bus() { return event_bus_; }
   /// Returns the latest Event as it's base class. This is mostly used for
   /// testing. Prefer accessing the Data via a Listener object.
   const std::shared_ptr<const internal::EventBase> GetLatestEvent() {
@@ -122,7 +120,6 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   /// channel_id_ refers to a predefined ChannelId and is used for
   /// identification by the Listener.
   ChannelIdType channel_id_ = 0;
-  std::shared_ptr<EventBus> event_bus_;
 };
 
 /// Channel is used to store the Publisher and Listener objects together.
@@ -313,7 +310,7 @@ class Listener : public std::enable_shared_from_this<Listener> {
   Listener(std::shared_ptr<EventBus> event_bus);
 
  private:
-  std::shared_mutex mux_;
+  mutable std::shared_mutex mux_;
   bool is_subscribed_ = false;
   size_t read_index_ = 0;
 
@@ -347,7 +344,7 @@ class EventBus : public std::enable_shared_from_this<EventBus> {
   /// It can be more efficient to store the returned shared_ptr for future use
   /// than to call this function.
   static std::shared_ptr<EventBus> Create() {
-    return std::make_shared<EventBus>();
+    return std::shared_ptr<EventBus>(new EventBus());
   }
 
   /// Returns a shared_ptr to the Listener object that is subscribed to the
@@ -359,15 +356,16 @@ class EventBus : public std::enable_shared_from_this<EventBus> {
   template <typename EvTyp>
   std::shared_ptr<Publisher<EvTyp>> RegisterPublisher(
       const ChannelIdType& channel) {
-    std::unique_lock<std::shared_mutex> lock(mux_);
-
     auto channel_ptr = GetChannel(channel);
+
+    std::unique_lock<std::shared_mutex> lock(mux_);
     // If the channel already has a publisher we avoid creating a new one. And
     // instead share the access to it.
     if (channel_ptr->get_publisher() != nullptr)
-      return static_pointer_cast<Publisher<EvTyp>>(channel->get_publisher());
+      return std::static_pointer_cast<Publisher<EvTyp>>(
+          channel_ptr->get_publisher());
 
-    auto publisher = Publisher<EvTyp>::Create(shared_from_this());
+    auto publisher = Publisher<EvTyp>::Create();
     publisher->RegisterPublisher(channel_ptr);
     channel_ptr->RegisterPublisher(publisher);
 
@@ -386,7 +384,6 @@ class EventBus : public std::enable_shared_from_this<EventBus> {
 
  private:
   mutable std::shared_mutex mux_;
-  std::shared_ptr<std::condition_variable_any> cv_;
 
   // Channels are stored together with their ID for fast lookups.
   std::unordered_map<ChannelIdType, std::shared_ptr<internal::Channel>>

@@ -22,9 +22,8 @@
 
 namespace habitify_core {
 namespace internal {
-PublisherBase::PublisherBase(std::shared_ptr<EventBus> event_bus)
-    : cv_(std::make_shared<std::condition_variable_any>()),
-      event_bus_(event_bus) {}
+PublisherBase::PublisherBase()
+    : cv_(std::make_shared<std::condition_variable_any>()) {}
 
 bool PublisherBase::RegisterPublisher(const std::shared_ptr<Channel> channel) {
   std::unique_lock<std::shared_mutex> lock(mux_);
@@ -84,9 +83,9 @@ void Listener::SubscribeTo(std::shared_ptr<internal::Channel> channel) {
 // EventBus
 std::shared_ptr<Listener> EventBus::SubscribeTo(
     const ChannelIdType& channel_id) {
-  std::unique_lock<std::shared_mutex> lock(mux_);
-
   auto channel = GetChannel(channel_id);
+
+  std::unique_lock<std::shared_mutex> lock(mux_);
 
   if (channel) {
     auto listener = Listener::Create(shared_from_this());
@@ -100,7 +99,8 @@ std::shared_ptr<Listener> EventBus::SubscribeTo(
 
 std::shared_ptr<internal::Channel> EventBus::GetChannel(
     const ChannelIdType& channel) {
-  std::shared_lock<std::shared_mutex> lock(mux_);
+  std::unique_lock<std::shared_mutex> lock(mux_);
+
   auto it = channels_.find(channel);
   if (it != channels_.end()) return it->second;
 

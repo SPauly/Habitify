@@ -17,9 +17,13 @@ namespace habitify_frontend {
 
 class ImGuiFrontend {
  public:
-  ImGuiFrontend() = delete;
-  ImGuiFrontend(std::shared_ptr<::habitify_core::EventBus> event_bus);
+  ImGuiFrontend();
   ~ImGuiFrontend();
+
+  // This function must be called before Run()
+  void SetEventBus(std::shared_ptr<::habitify_core::EventBus> event_bus) {
+    event_bus_ = event_bus;
+  }
 
   void Run();
 
