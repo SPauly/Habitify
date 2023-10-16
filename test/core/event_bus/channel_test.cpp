@@ -45,7 +45,7 @@ TEST_F(ChannelTest, ChannelInitialization) {
 }
 
 TEST_F(ChannelTest, SubscriptionFunctionality) {
-  publisher_->RegisterChannel(1);
+  publisher_->RegisterPublisher(1);
   listener_->SubscribeTo(1);
   // Check if the channel properly forwards the Publisher to the Listener
   EXPECT_EQ(listener_->ValidatePublisher(), true);

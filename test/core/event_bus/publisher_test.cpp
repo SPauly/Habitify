@@ -49,7 +49,7 @@ TEST_F(PublisherBaseTest, IsInitializedProperly) {
 // Tests that the PublisherBase properly registers a channel.
 TEST_F(PublisherBaseTest, IsRegisteredProperly) {
   ASSERT_NE(publisher_base_, nullptr);
-  ASSERT_EQ(publisher_base_->RegisterChannel(1), true);
+  ASSERT_EQ(publisher_base_->RegisterPublisher(1), true);
   EXPECT_EQ(publisher_base_->get_channel_id(), 1);
   EXPECT_EQ(publisher_base_->get_is_registered(), true);
 }
@@ -84,7 +84,7 @@ TEST_F(PublisherTest, CreationWorks) {
 
 TEST_F(PublisherTest, PublishCorrectness) {
   ASSERT_NE(publisher_int_, nullptr);
-  ASSERT_EQ(publisher_int_->RegisterChannel(1), true);
+  ASSERT_EQ(publisher_int_->RegisterPublisher(1), true);
   EXPECT_EQ(
       publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_)),
       true);
@@ -94,7 +94,7 @@ TEST_F(PublisherTest, PublishCorrectness) {
             ::habitify_core::EventType::TEST2);
 
   ASSERT_NE(publisher_string_, nullptr);
-  ASSERT_EQ(publisher_string_->RegisterChannel(2), true);
+  ASSERT_EQ(publisher_string_->RegisterPublisher(2), true);
   EXPECT_EQ(publisher_string_->Publish(
                 std::make_unique<const Event<std::string>>(event_string_)),
             true);
@@ -109,7 +109,7 @@ TEST_F(PublisherTest, PublishCorrectness) {
 
 TEST_F(PublisherTest, DetectNews) {
   ASSERT_NE(publisher_int_, nullptr);
-  publisher_int_->RegisterChannel(1);
+  publisher_int_->RegisterPublisher(1);
   publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_));
   EXPECT_EQ(publisher_int_->HasNews(0), true);
 }

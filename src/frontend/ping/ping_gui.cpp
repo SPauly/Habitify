@@ -25,7 +25,7 @@ void PingGui::OnUIRender() {
 
   if (ImGui::Button("Send Ping")) {
     publisher_ = habitify_core::Publisher<int>::Create();
-    publisher_->RegisterChannel(1);
+    publisher_->RegisterPublisher(1);
     static int ping_count = 0;
     habitify_core::Event<int> e(habitify_core::EventType::TEST, 0, &ping_count);
     ping_count++;

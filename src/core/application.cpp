@@ -22,7 +22,7 @@ Application::~Application() {
 
 void Application::Run() {
   std::shared_ptr<Publisher<int>> p = Publisher<int>::Create();
-  p->RegisterChannel(0);
+  p->RegisterPublisher(0);
   std::shared_ptr<Listener> l = Listener::Create();
   l->SubscribeTo(1);
   int ping_count = 0;
