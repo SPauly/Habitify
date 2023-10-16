@@ -13,12 +13,12 @@ class LayerStack {
   LayerStack() = default;
   ~LayerStack();
 
-  template <typename T>
-  void PushLayer() {
+  template <typename T, typename... Args>
+  void PushLayer(Args... args) {
     static_assert(std::is_base_of<Layer, T>::value,
                   "Pushed type is not subclass of Layer!");
     layers_.emplace(layers_.begin() + layer_insert_index_,
-                    std::make_shared<T>());
+                    std::make_shared<T>(args...));
     (*std::next(layers_.begin(), layer_insert_index_))->OnAttach();
     layer_insert_index_++;
   }

@@ -9,11 +9,13 @@
 namespace habitify_frontend {
 class PingGui : public Layer {
  public:
-  PingGui();
+  PingGui() = delete;
+  PingGui(std::shared_ptr<::habitify_core::EventBus> event_bus);
   ~PingGui() = default;
   void OnUIRender() override;
 
  private:
+  std::shared_ptr<::habitify_core::EventBus> event_bus_;
   std::shared_ptr<::habitify_core::Listener> listener_;
   std::shared_ptr<::habitify_core::Publisher<int>> publisher_;
 };

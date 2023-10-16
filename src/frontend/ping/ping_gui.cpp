@@ -9,9 +9,9 @@
 #include "src/core/event_bus/event_bus.h"
 
 namespace habitify_frontend {
-PingGui::PingGui() {
-  listener_ = habitify_core::Listener::Create();
-  listener_->SubscribeTo(0);
+PingGui::PingGui(std::shared_ptr<::habitify_core::EventBus> event_bus)
+    : event_bus_(event_bus) {
+  listener_ = event_bus_->SubscribeTo(0);
 }
 void PingGui::OnUIRender() {
   ImGui::Begin("Ping Service");
@@ -24,8 +24,7 @@ void PingGui::OnUIRender() {
                std::to_string(*listener_->ReadLatest<int>()->GetData<int>());
 
   if (ImGui::Button("Send Ping")) {
-    publisher_ = habitify_core::Publisher<int>::Create();
-    publisher_->RegisterPublisher(1);
+    publisher_ = event_bus_->RegisterPublisher<int>(1);
     static int ping_count = 0;
     habitify_core::Event<int> e(habitify_core::EventType::TEST, 0, &ping_count);
     ping_count++;

@@ -22,17 +22,15 @@
 
 namespace habitify_core {
 namespace internal {
-PublisherBase::PublisherBase()
-    : cv_(std::make_shared<std::condition_variable_any>()) {}
+PublisherBase::PublisherBase(std::shared_ptr<EventBus> event_bus)
+    : cv_(std::make_shared<std::condition_variable_any>()),
+      event_bus_(event_bus) {}
 
-bool PublisherBase::RegisterPublisher(
-    const std::shared_ptr<Channel> channel,
-    const std::shared_ptr<EventBus> event_bus) {
+bool PublisherBase::RegisterPublisher(const std::shared_ptr<Channel> channel) {
   std::unique_lock<std::shared_mutex> lock(mux_);
 
   channel_ = channel;
   channel_id_ = channel->get_channel_id();
-  event_bus_ = event_bus;
 
   return is_registered_ = true;
 }
@@ -72,21 +70,14 @@ std::shared_ptr<PublisherBase> Channel::RegisterPublisher(
 
 }  // namespace internal
 
-Listener::Listener() : event_bus_(EventBus::get_instance()) {}
+Listener::Listener(std::shared_ptr<EventBus> event_bus)
+    : event_bus_(event_bus) {}
 
-void Listener::ChangeSubscription(const ChannelIdType& channel) {
-  std::unique_lock<std::shared_mutex> lock(mux_);
-  event_bus_->UnsubscribeFrom(channel_id_);
-  shared_from_this() = event_bus_->SubscribeTo(channel);
-}
-
-void Listener::SubscribeTo(std::shared_ptr<internal::Channel> channel,
-                           std::shared_ptr<EventBus> event_bus) {
+void Listener::SubscribeTo(std::shared_ptr<internal::Channel> channel) {
   std::unique_lock<std::shared_mutex> lock(mux_);
   channel_ = channel;
   channel_id_ = channel->get_channel_id();
   publisher_ = channel->get_publisher();
-  event_bus_ = event_bus;
   is_subscribed_ = true;
 }
 
@@ -98,8 +89,8 @@ std::shared_ptr<Listener> EventBus::SubscribeTo(
   auto channel = GetChannel(channel_id);
 
   if (channel) {
-    auto listener = Listener::Create();
-    listener->SubscribeTo(channel, shared_from_this());
+    auto listener = Listener::Create(shared_from_this());
+    listener->SubscribeTo(channel);
     channel->RegisterListener(listener);
     return listener;
   }

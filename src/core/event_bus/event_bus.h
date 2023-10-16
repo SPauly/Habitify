@@ -21,18 +21,19 @@
 /// were each Publisher can share events of a fixed type. The Listeners can read
 /// or pull these events from the Publisher.
 /// Interface:
-///       - template<typename EvType>Publisher: this interface to the EventBus
-///       stores the events and takes care of data management and sharing.
+///       - EventBus: the EventBus manages Publisher and Listener objects by
+///       bundling them into Channels. Each Channel is limited to one type of
+///       Publisher. EventBus should be used to instantiate Publisher and
+///       Listener objects.
+///       - Publisher<EvType> interface to store and publish data
+///       asynchronously.
 ///       - Listener serves as interface to the Publisher and exposes reading
 ///       functionality.
 ///           NOTE: EvType is the type which is used to instatiate the Event<T>
 ///           object e.g. Event<int>
 ///           NOTE: Listener and Publisher need to be created as shared_ptr to
-///           ensure thread safety.
-///                 e.g. std::shared_ptr<Listener> l = Listener::Create();
-///       - EventBus: the EventBus is a singleton that stores the matching
-///       Publisher and Listener objects together. It should only be accessed
-///       via Publisher and Listener
+///           ensure thread safety. The best practice is to use the
+///           EventBus::SubscribeTo and EventBus::RegisterPublisher functions
 
 #ifndef HABITIFY_SRC_CORE_EVENT_BUS_EVENT_BUS_H_
 #define HABITIFY_SRC_CORE_EVENT_BUS_EVENT_BUS_H_
@@ -72,7 +73,8 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   // channel
   friend class ::habitify_core::EventBus;
 
-  PublisherBase();
+  PublisherBase() = delete;
+  PublisherBase(std::shared_ptr<EventBus> event_bus);
   virtual ~PublisherBase() = default;
 
   // PublisherBase is not copyable due to the use of std::shared_mutex
@@ -108,8 +110,7 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
 
   /// RegisterPublisher(const ChannelIdType& channel) is called by EventBus and
   /// sets all the necessary members.
-  bool RegisterPublisher(const std::shared_ptr<Channel> channel,
-                         const std::shared_ptr<EventBus> event_bus);
+  bool RegisterPublisher(const std::shared_ptr<Channel> channel);
 
  protected:
   mutable std::shared_mutex mux_;
@@ -121,7 +122,6 @@ class PublisherBase : public std::enable_shared_from_this<PublisherBase> {
   /// channel_id_ refers to a predefined ChannelId and is used for
   /// identification by the Listener.
   ChannelIdType channel_id_ = 0;
-  std::shared_ptr<Channel> channel_;
   std::shared_ptr<EventBus> event_bus_;
 };
 
@@ -178,7 +178,7 @@ class Publisher : public internal::PublisherBase {
   /// Publisher() was made private to ensure that it is only created via the
   /// Create function. This way we can enforce that Publisher is purely used as
   /// shared_ptr instance.
-  inline std::shared_ptr<Publisher<EvTyp>> Create() {
+  static std::shared_ptr<Publisher<EvTyp>> Create() {
     return std::shared_ptr<Publisher<EvTyp>>(new Publisher<EvTyp>());
   }
   ~Publisher() = default;
@@ -243,6 +243,10 @@ class Publisher : public internal::PublisherBase {
 ///       if(l.HasNews()) auto event = l.ReadLatest<int>();
 class Listener : public std::enable_shared_from_this<Listener> {
  public:
+  // EventBus needs access to the SubscribeTo() function to properly instantiate
+  // the Listener object
+  friend class EventBus;
+
   virtual ~Listener() = default;
 
   // Listener is not copyable due to the use of std::shared_mutex
@@ -252,14 +256,14 @@ class Listener : public std::enable_shared_from_this<Listener> {
   /// Listener() was made private to ensure that it is only created via the
   /// Create function. This way we can enforce that Listener is purely used as
   /// shared_ptr instance.
-  inline std::shared_ptr<Listener> Create() {
-    return std::shared_ptr<Listener>(new Listener());
+  static std::shared_ptr<Listener> Create(std::shared_ptr<EventBus> event_bus) {
+    return std::shared_ptr<Listener>(new Listener(event_bus));
   }
 
   /// Attempts to subscribe to the specified channel. If no Publisher is set it
   /// creates a new Channel. The Channel then calls RefreshPublisher() once the
   /// Publisher was added.
-  void ChangeSubscription(const ChannelIdType& channel);
+  /// TODO: void ChangeSubscription(const ChannelIdType& channel);
 
   /// Returns true if the Listener is subscribed to a Publisher. And false if no
   /// publisher is set.
@@ -302,11 +306,11 @@ class Listener : public std::enable_shared_from_this<Listener> {
  protected:
   /// Listener::SubscribeTo() is used
   /// by the EventBus to assign the Listener to a specific channel
-  void SubscribeTo(std::shared_ptr<internal::Channel> channel,
-                   std::shared_ptr<EventBus> event_bus);
+  void SubscribeTo(std::shared_ptr<internal::Channel> channel);
 
  private:
-  Listener();
+  Listener() = delete;
+  Listener(std::shared_ptr<EventBus> event_bus);
 
  private:
   std::shared_mutex mux_;
@@ -342,7 +346,7 @@ class EventBus : public std::enable_shared_from_this<EventBus> {
   /// NOTE that EventBus cannot be constructed via a constructor.
   /// It can be more efficient to store the returned shared_ptr for future use
   /// than to call this function.
-  inline std::shared_ptr<EventBus> Create() {
+  static std::shared_ptr<EventBus> Create() {
     return std::make_shared<EventBus>();
   }
 
@@ -361,10 +365,10 @@ class EventBus : public std::enable_shared_from_this<EventBus> {
     // If the channel already has a publisher we avoid creating a new one. And
     // instead share the access to it.
     if (channel_ptr->get_publisher() != nullptr)
-      return channel_ptr->get_publisher();
+      return static_pointer_cast<Publisher<EvTyp>>(channel->get_publisher());
 
-    auto publisher = Publisher<EvTyp>::Create(channel);
-    publisher->RegisterPublisher(channel_ptr, shared_from_this());
+    auto publisher = Publisher<EvTyp>::Create(shared_from_this());
+    publisher->RegisterPublisher(channel_ptr);
     channel_ptr->RegisterPublisher(publisher);
 
     return publisher;

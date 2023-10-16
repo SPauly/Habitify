@@ -16,7 +16,9 @@ static void glfw_error_callback(int error, const char *description) {
 }
 
 namespace habitify_frontend {
-ImGuiFrontend::ImGuiFrontend() {}
+ImGuiFrontend::ImGuiFrontend(
+    std::shared_ptr<::habitify_core::EventBus> event_bus)
+    : event_bus_(event_bus) {}
 ImGuiFrontend::~ImGuiFrontend() {}
 
 bool ImGuiFrontend::Init() {
@@ -64,7 +66,7 @@ bool ImGuiFrontend::Init() {
 
   // instantiate layers
   layer_stack_.PushLayer<habitify_debug::DebugGui>();
-  layer_stack_.PushLayer<PingGui>();
+  layer_stack_.PushLayer<PingGui>(event_bus_);
 
   return is_initialized = true;
 }

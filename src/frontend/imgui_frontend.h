@@ -11,12 +11,14 @@
 #endif
 #include <GLFW/glfw3.h>  // Will drag system OpenGL headers
 
+#include "src/core/event_bus/event_bus.h"
 #include "src/frontend/layer_stack.h"
 namespace habitify_frontend {
 
 class ImGuiFrontend {
  public:
-  ImGuiFrontend();
+  ImGuiFrontend() = delete;
+  ImGuiFrontend(std::shared_ptr<::habitify_core::EventBus> event_bus);
   ~ImGuiFrontend();
 
   void Run();
@@ -46,6 +48,7 @@ class ImGuiFrontend {
   ImGuiStyle *style_ = nullptr;
 
   LayerStack layer_stack_;
+  std::shared_ptr<::habitify_core::EventBus> event_bus_;
 };
 
 }  // namespace habitify_frontend
