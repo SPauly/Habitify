@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <string>
+#include <thread>
 
 #include "src/core/event_bus/event.h"
 #include "src/core/event_bus/event_bus.h"
@@ -86,6 +87,28 @@ TEST_F(EventBusTest, PublishAndReceive) {
   EXPECT_TRUE(listener_str_->HasReceivedEvent());
   auto latest_event_str_ = listener_str_->ReadLatest<std::string>();
   EXPECT_EQ(*latest_event_str_->GetData<std::string>(), test_string_);
+}
+
+TEST_F(EventBusTest, ThreadSafety) {
+  // Test threadsafety of the event bus
+  std::thread listener_thread([&]() {
+    while (listener_int_->get_read_index() < 100) {
+      if (listener_int_->HasReceivedEvent()) {
+        EXPECT_EQ(*listener_int_->ReadLatest<int>()->GetData<int>(),
+                  test_value_);
+      }
+    }
+  });
+
+  std::thread publisher_thread([&]() {
+    for (int i = 0; i < 100; i++) {
+      EXPECT_TRUE(publisher_int_->Publish(
+          std::make_unique<const Event<int>>(event_int_)));
+    }
+  });
+
+  publisher_thread.join();
+  listener_thread.join();
 }
 
 }  // namespace
