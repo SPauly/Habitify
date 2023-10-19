@@ -89,7 +89,7 @@ TEST_F(PublisherTest, PublishCorrectness) {
       publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_)),
       true);
   // check that the Event properly was stored
-  EXPECT_EQ(publisher_int_->HasNews(0), true);
+  EXPECT_EQ(publisher_int_->HasReceivedEvent(0), true);
   EXPECT_EQ(publisher_int_->GetLatestEvent()->get_event_type(),
             ::habitify_core::EventType::TEST2);
 
@@ -98,7 +98,7 @@ TEST_F(PublisherTest, PublishCorrectness) {
   EXPECT_EQ(publisher_string_->Publish(
                 std::make_unique<const Event<std::string>>(event_string_)),
             true);
-  EXPECT_EQ(publisher_string_->HasNews(0), true);
+  EXPECT_EQ(publisher_string_->HasReceivedEvent(0), true);
   EXPECT_NE(publisher_int_->GetLatestEvent(), nullptr);
 
   // Assert that pushing a wrong Event<EvTyp> results in an assertion
@@ -111,14 +111,9 @@ TEST_F(PublisherTest, DetectNews) {
   ASSERT_NE(publisher_int_, nullptr);
   publisher_int_->RegisterPublisher(1);
   publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_));
-  EXPECT_EQ(publisher_int_->HasNews(0), true);
+  EXPECT_EQ(publisher_int_->HasReceivedEvent(0), true);
 }
 
 }  // namespace
 }  // namespace habitify_testing
 }  // namespace habitify_core
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

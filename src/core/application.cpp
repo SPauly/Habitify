@@ -34,7 +34,7 @@ void Application::Run() {
     ping_count++;
     std::cout << "Sending Ping: " << ping_count << std::endl;
     p->Publish(std::make_unique<const Event<int>>(e));
-    if (l->HasNews())
+    if (l->HasReceivedEvent())
       std::cout << "Ping Received: " << *l->ReadLatest<int>()->GetData<int>()
                 << std::endl;
   }

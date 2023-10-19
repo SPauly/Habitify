@@ -19,7 +19,7 @@ void PingGui::OnUIRender() {
   static std::string ping_str;
   static std::string ping_send_str;
 
-  if (listener_->HasNews())
+  if (listener_->HasReceivedEvent())
     ping_str = "Ping Received: " +
                std::to_string(*listener_->ReadLatest<int>()->GetData<int>());
 

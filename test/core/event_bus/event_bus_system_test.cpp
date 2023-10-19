@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <string>
 
 #include "src/core/event_bus/event.h"
 #include "src/core/event_bus/event_bus.h"
@@ -28,10 +29,65 @@ namespace {
 
 class EventBusTest : public ::testing::Test {
  protected:
+  void SetUp() override {
+    event_bus_ = ::habitify_core::EventBus::Create();
+    listener_int_ = event_bus_->SubscribeTo(0);
+    listener_str_ = event_bus_->SubscribeTo(1);
+
+    publisher_int_ = event_bus_->RegisterPublisher<int>(0);
+    publisher_str_ = event_bus_->RegisterPublisher<std::string>(1);
+  }
+
+ protected:
+  // utils
+  std::shared_ptr<EventBus> event_bus_;
+  int test_value_ = 418;
+  ::habitify_core::Event<int> event_int_{::habitify_core::EventType::TEST, 0,
+                                         &test_value_};
+  std::string test_string_ = "test";
+  ::habitify_core::Event<std::string> event_str_{
+      ::habitify_core::EventType::TEST, 1, &test_string_};
+
+  // Listeners
+  std::shared_ptr<::habitify_core::Listener> listener_int_;
+  std::shared_ptr<::habitify_core::Listener> listener_str_;
+
+  // Publishers
+  std::shared_ptr<::habitify_core::Publisher<int>> publisher_int_;
+  std::shared_ptr<::habitify_core::Publisher<std::string>> publisher_str_;
 };
+
+TEST_F(EventBusTest, Initialization) {
+  // Check if all pointers are initialized properly
+  EXPECT_TRUE(event_bus_ != nullptr);
+  EXPECT_TRUE(listener_int_ != nullptr);
+  EXPECT_TRUE(listener_str_ != nullptr);
+  EXPECT_TRUE(publisher_int_ != nullptr);
+  EXPECT_TRUE(publisher_str_ != nullptr);
+
+  EXPECT_EQ(event_bus_->GetChannelCount(), 2);
+}
+
+TEST_F(EventBusTest, PublishAndReceive) {
+  // Publish an event and check if it is received
+  ASSERT_TRUE(
+      publisher_int_->Publish(std::make_unique<const Event<int>>(event_int_)));
+  EXPECT_TRUE(listener_int_->HasReceivedEvent());
+  auto latest_event_int_ = listener_int_->ReadLatest<int>();
+  EXPECT_EQ(*latest_event_int_->GetData<int>(), test_value_);
+
+  // Check if the counters are increased
+  EXPECT_EQ(publisher_int_->get_writer_index(), 1);
+  EXPECT_EQ(listener_int_->get_read_index(), 1);
+}
 
 }  // namespace
 
 }  // namespace habitify_testing
 
 }  // namespace habitify_core
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
