@@ -20,6 +20,7 @@ ImGuiFrontend::ImGuiFrontend() {}
 ImGuiFrontend::~ImGuiFrontend() {}
 
 bool ImGuiFrontend::Init() {
+  if (!event_bus_) return is_initialized = false;
   // Setup window
   glfwSetErrorCallback(glfw_error_callback);
   if (!glfwInit()) return is_initialized = false;
@@ -64,7 +65,7 @@ bool ImGuiFrontend::Init() {
 
   // instantiate layers
   layer_stack_.PushLayer<habitify_debug::DebugGui>();
-  layer_stack_.PushLayer<PingGui>();
+  layer_stack_.PushLayer<PingGui>(event_bus_);
 
   return is_initialized = true;
 }

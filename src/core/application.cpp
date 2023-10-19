@@ -7,7 +7,8 @@
 
 namespace habitify_core {
 
-Application::Application() {
+Application::Application() : event_bus_(EventBus::Create()) {
+  imgui_frontend_.SetEventBus(event_bus_);
   frontend_thread_ = new (std::nothrow)
       std::thread(&habitify_frontend::ImGuiFrontend::Run, &imgui_frontend_);
   HAB_ASSERT(frontend_thread_);
@@ -21,8 +22,10 @@ Application::~Application() {
 }
 
 void Application::Run() {
-  std::shared_ptr<Publisher<int>> p = Publisher<int>::Create();
-  p->RegisterChannel(0);
+  std::shared_ptr<EventBus> event_bus = EventBus::Create();
+  std::shared_ptr<Publisher<int>> p = event_bus_->RegisterPublisher<int>(0);
+  std::shared_ptr<Listener> l = event_bus_->SubscribeTo(1);
+
   int ping_count = 0;
 
   Event<int> e(habitify_core::EventType::TEST, 0, &ping_count);
@@ -31,6 +34,9 @@ void Application::Run() {
     ping_count++;
     std::cout << "Sending Ping: " << ping_count << std::endl;
     p->Publish(std::make_unique<const Event<int>>(e));
+    if (l->HasReceivedEvent())
+      std::cout << "Ping Received: " << *l->ReadLatest<int>()->GetData<int>()
+                << std::endl;
   }
 }
 

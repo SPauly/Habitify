@@ -17,6 +17,8 @@ class Application {
  private:
   habitify_frontend::ImGuiFrontend imgui_frontend_;
   std::thread *frontend_thread_;
+
+  std::shared_ptr<EventBus> event_bus_;
 };
 }  // namespace habitify_core
 
