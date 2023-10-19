@@ -79,6 +79,13 @@ TEST_F(EventBusTest, PublishAndReceive) {
   // Check if the counters are increased
   EXPECT_EQ(publisher_int_->get_writer_index(), 1);
   EXPECT_EQ(listener_int_->get_read_index(), 1);
+
+  // Test functionality with a string
+  ASSERT_TRUE(publisher_str_->Publish(
+      std::make_unique<const Event<std::string>>(event_str_)));
+  EXPECT_TRUE(listener_str_->HasReceivedEvent());
+  auto latest_event_str_ = listener_str_->ReadLatest<std::string>();
+  EXPECT_EQ(*latest_event_str_->GetData<std::string>(), test_string_);
 }
 
 }  // namespace
